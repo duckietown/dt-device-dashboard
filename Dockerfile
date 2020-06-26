@@ -53,7 +53,7 @@ COPY ./launch.sh /launch.sh
 ENV LAUNCHFILE "/launch.sh"
 
 # redefine entrypoint
-ENTRYPOINT "${LAUNCHFILE}"
+ENTRYPOINT ["/bin/bash", "-c", "${LAUNCHFILE}"]
 
 # store module name
 ARG REPO_NAME
