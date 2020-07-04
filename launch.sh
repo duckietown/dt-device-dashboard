@@ -23,11 +23,11 @@ export PYTHONPATH="/code/dt-commons:$PYTHONPATH"
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."
-python3 $COMPOSE_DIR/configure.py \
+compose configuration/set --package 'core' \
   --navbar_title "${HOSTNAME}" \
   --website_name "${ROBOT_TYPE^} Dashboard" \
-  --logo_white "http://${HOSTNAME}.local/data/duckietown/images/logo.png" \
-  --logo_black "http://${HOSTNAME}.local/data/duckietown/images/logo.png"
+  --logo_white "http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
+  --logo_black "http://${HOSTNAME}.local/d/data/duckietown/images/logo.png"
 
 dt-exec dt-advertise --name "DASHBOARD"
 

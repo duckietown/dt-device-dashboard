@@ -5,8 +5,7 @@ ARG MAINTAINER="Andrea F. Daniele (afdaniele@ttic.edu)"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-#TODO: change this once v1.0.0 is released
-ARG COMPOSE_VERSION=devel
+ARG COMPOSE_VERSION=v1.0.0-rc5
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 
@@ -66,12 +65,12 @@ ARG COMPOSE_VERSION
 ARG BASE_IMAGE
 ARG BASE_TAG
 ARG MAINTAINER
-LABEL org.duckietown.label.architecture="${ARCH}"
-LABEL org.duckietown.label.code.location="/var/www/html/"
-LABEL org.duckietown.label.base.major="${COMPOSE_VERSION}"
-LABEL org.duckietown.label.base.image="${BASE_IMAGE}"
-LABEL org.duckietown.label.base.tag="${BASE_TAG}"
-LABEL org.duckietown.label.maintainer="${MAINTAINER}"
+LABEL org.duckietown.label.architecture="${ARCH}" \
+    org.duckietown.label.code.location="/var/www/html/" \
+    org.duckietown.label.base.major="${COMPOSE_VERSION}" \
+    org.duckietown.label.base.image="${BASE_IMAGE}" \
+    org.duckietown.label.base.tag="${BASE_TAG}" \
+    org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change this code
 # <==================================================
 
@@ -79,10 +78,14 @@ LABEL org.duckietown.label.maintainer="${MAINTAINER}"
 USER www-data
 
 # configure \compose\
-RUN python3 $COMPOSE_DIR/configure.py \
-  --guest_default_page "robot" \
-  --login_enabled 1 \
-  --cache_enabled 1
+RUN compose configuration/set --package 'core' \
+    --guest_default_page 'robot' \
+    --login_enabled 1 \
+    --cache_enabled 1
+RUN compose page/disable --package duckietown --page duckietown
+RUN compose page/disable --package duckietown --page cloud_storage
+RUN compose page/disable --package duckietown --page diagnostics
+RUN compose page/disable --package data --page data-viewer
 
 # switch back to root
 USER root

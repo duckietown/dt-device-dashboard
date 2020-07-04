@@ -1,7 +1,6 @@
 # LIST YOUR COMPOSE PACKAGES HERE
-#TODO: re-pin these versions
-duckietown_duckiebot
-duckietown
-portainer
-ros
-data
+duckietown_duckiebot=v1.0.0-rc2
+duckietown=v1.0.0-rc
+portainer=v1.0.0-rc
+ros=v1.0.0-rc
+data=v1.0.0-rc
