@@ -1,1 +1,5 @@
 # LIST YOUR APT PACKAGES HERE
+
+# NOTE: this is needed in order to build netifaces on ARM
+python3-dev
+python3-wheel

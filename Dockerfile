@@ -1,19 +1,27 @@
 # parameters
-ARG DASHBOARD_NAME="duckiebot"
+ARG REPO_NAME="device-dashboard"
+ARG MAINTAINER="Andrea F. Daniele (afdaniele@ttic.edu)"
 
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG MAJOR=v0.9.9
+ARG COMPOSE_VERSION=v1.0.0-rc5
 ARG BASE_IMAGE=compose
-ARG BASE_TAG=${MAJOR}-${ARCH}
+ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
+
+# extend dt-commons
+ARG SUPER_IMAGE=dt-commons
+ARG MAJOR=daffy
+ARG SUPER_IMAGE_TAG=${MAJOR}-${ARCH}
+FROM duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
 
 # define base image
 FROM afdaniele/${BASE_IMAGE}:${BASE_TAG}
 
-# setup environment
-ARG DASHBOARD_NAME
-ENV DT_DASHBOARD_NAME="${DASHBOARD_NAME}"
+# copy stuff from the super image
+COPY --from=dt-commons /environment.sh /environment.sh
+COPY --from=dt-commons /usr/local/bin/dt-advertise /usr/local/bin/dt-advertise
+COPY --from=dt-commons /code/dt-commons /code/dt-commons
 
 # copy dependencies files only
 COPY ./dependencies-apt.txt /tmp/
@@ -44,19 +52,40 @@ COPY ./launch.sh /launch.sh
 ENV LAUNCHFILE "/launch.sh"
 
 # redefine entrypoint
-ENTRYPOINT "${LAUNCHFILE}"
+ENTRYPOINT ["/bin/bash", "-c", "${LAUNCHFILE}"]
+
+# store module name
+ARG REPO_NAME
+LABEL org.duckietown.label.module.type="${REPO_NAME}"
+ENV DT_MODULE_TYPE "${REPO_NAME}"
+
+# store module metadata
+ARG ARCH
+ARG COMPOSE_VERSION
+ARG BASE_IMAGE
+ARG BASE_TAG
+ARG MAINTAINER
+LABEL org.duckietown.label.architecture="${ARCH}" \
+    org.duckietown.label.code.location="/var/www/html/" \
+    org.duckietown.label.base.major="${COMPOSE_VERSION}" \
+    org.duckietown.label.base.image="${BASE_IMAGE}" \
+    org.duckietown.label.base.tag="${BASE_TAG}" \
+    org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change this code
 # <==================================================
 
+# switch to simple user
+USER www-data
+
 # configure \compose\
-RUN python3 $COMPOSE_DIR/configure.py \
-  --guest_default_page "mission-control" \
-  --website_name "Duckiebot Dashboard" \
-  --login_enabled 1 \
-  --cache_enabled 1
+RUN compose configuration/set --package 'core' \
+    --guest_default_page 'robot' \
+    --login_enabled 1 \
+    --cache_enabled 1
+RUN compose page/disable --package duckietown --page duckietown
+RUN compose page/disable --package duckietown --page cloud_storage
+RUN compose page/disable --package duckietown --page diagnostics
+RUN compose page/disable --package data --page data-viewer
 
-# copy avahi services
-COPY assets/avahi-services/dt.dashboard.service /dt.dashboard.service
-
-# maintainer
-LABEL maintainer="Andrea F. Daniele (afdaniele@ttic.edu)"
+# switch back to root
+USER root
