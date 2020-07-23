@@ -5,7 +5,7 @@ ARG MAINTAINER="Andrea F. Daniele (afdaniele@ttic.edu)"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG COMPOSE_VERSION=v1.0.0-rc5
+ARG COMPOSE_VERSION=v1.0.0
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 

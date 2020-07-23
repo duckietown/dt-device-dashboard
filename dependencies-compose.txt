@@ -1,6 +1,6 @@
 # LIST YOUR COMPOSE PACKAGES HERE
-duckietown_duckiebot=v1.0.0-rc2
-duckietown=v1.0.0-rc
-portainer=v1.0.0-rc
-ros=v1.0.0-rc
-data=v1.0.0-rc
+duckietown_duckiebot==v1.0.0
+duckietown==v1.0.0
+portainer==v1.0.0
+ros==v1.0.0
+data==v1.0.0
