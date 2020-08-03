@@ -38,5 +38,5 @@ dt-exec dt-advertise --name "DASHBOARD"
 # run base entrypoint
 dt-exec /entrypoint.sh
 
-# terminate launch file
+# wait for app to end
 dt-launchfile-join
