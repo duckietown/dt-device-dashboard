@@ -1,3 +1,14 @@
 version: '1.0'
 
-configurations: {}
+configurations:
+  default:
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      HTTP_PORT: 8080
+    volumes:
+      - /data:/data
+      # compose volume
+      - compose-data:/user-data/databases
+      # avahi socket
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
