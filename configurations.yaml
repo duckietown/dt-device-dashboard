@@ -4,8 +4,6 @@ configurations:
   default:
     restart: unless-stopped
     network_mode: host
-    environment:
-      HTTP_PORT: 8080
     volumes:
       - /data:/data
       # compose volume
