@@ -8,7 +8,7 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG COMPOSE_VERSION=v1.0.4
+ARG COMPOSE_VERSION=v1.0.5
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
@@ -118,7 +118,8 @@ RUN compose configuration/set --package core \
     administrator_default_page=profile \
     login_enabled=1 \
     cache_enabled=1 \
-    theme=core:modern
+    theme=core:modern \
+    favicon=duckietown
 
 # configure theme
 RUN compose theme/set \
@@ -129,9 +130,6 @@ RUN compose theme/set \
     colors/tertiary=#646464
 
 # disable unused pages
-RUN compose page/disable --package duckietown --page duckietown
-RUN compose page/disable --package duckietown --page cloud_storage
-RUN compose page/disable --package duckietown --page diagnostics
 RUN compose page/disable --package data --page data-viewer
 
 # configure HTTP
