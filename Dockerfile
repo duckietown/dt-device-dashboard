@@ -15,7 +15,7 @@ ARG LAUNCHER=default
 
 # extend dt-commons
 ARG SUPER_IMAGE=dt-commons
-ARG DISTRO=ente
+ARG DISTRO=daffy
 ARG SUPER_IMAGE_TAG=${DISTRO}-${ARCH}
 FROM duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
 
