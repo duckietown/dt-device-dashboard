@@ -8,7 +8,7 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG COMPOSE_VERSION=v1.0.2
+ARG COMPOSE_VERSION=v1.0.5
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
@@ -22,7 +22,11 @@ FROM duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
 # define base image
 FROM afdaniele/${BASE_IMAGE}:${BASE_TAG}
 
+# move compose entrypoint
+RUN cp /entrypoint.sh /compose-entrypoint.sh
+
 # copy stuff from the super image
+COPY --from=dt-commons /entrypoint.sh /entrypoint.sh
 COPY --from=dt-commons /environment.sh /environment.sh
 COPY --from=dt-commons /usr/local/bin/dt-* /usr/local/bin/
 COPY --from=dt-commons /code/dt-commons /code/dt-commons
@@ -43,6 +47,7 @@ RUN dt-build-env-check "${REPO_NAME}" "${MAINTAINER}" "${DESCRIPTION}"
 
 # define/create repository path
 ARG SOURCE_DIR="/code"
+ARG LAUNCH_DIR="/launch"
 ARG REPO_PATH="${SOURCE_DIR}/${REPO_NAME}"
 ARG LAUNCH_PATH="${LAUNCH_DIR}/${REPO_NAME}"
 RUN mkdir -p "${REPO_PATH}"
@@ -83,6 +88,9 @@ COPY ./launchers/. "${LAUNCH_PATH}/"
 COPY ./launchers/default.sh "${LAUNCH_PATH}/"
 RUN dt-install-launchers "${LAUNCH_PATH}"
 
+# reset the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
 # define default command
 CMD ["bash", "-c", "dt-launcher-${DT_LAUNCHER}"]
 
@@ -110,7 +118,8 @@ RUN compose configuration/set --package core \
     administrator_default_page=profile \
     login_enabled=1 \
     cache_enabled=1 \
-    theme=core:modern
+    theme=core:modern \
+    favicon=duckietown
 
 # configure theme
 RUN compose theme/set \
@@ -121,9 +130,6 @@ RUN compose theme/set \
     colors/tertiary=#646464
 
 # disable unused pages
-RUN compose page/disable --package duckietown --page duckietown
-RUN compose page/disable --package duckietown --page cloud_storage
-RUN compose page/disable --package duckietown --page diagnostics
 RUN compose page/disable --package data --page data-viewer
 
 # configure HTTP

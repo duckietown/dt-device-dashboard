@@ -23,7 +23,7 @@ export PYTHONPATH="/code/dt-commons/packages:$PYTHONPATH"
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."
-compose configuration/set --package 'core' \
+compose configuration/set --package core \
   "navbar_title=${HOSTNAME}" \
   "navbar_subtitle=(${ROBOT_TYPE})" \
   "website_name=${ROBOT_TYPE^} Dashboard" \
@@ -35,8 +35,8 @@ dt-exec dt-advertise --name "DASHBOARD"
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
-# run base entrypoint
-dt-exec /entrypoint.sh
+# run compose entrypoint
+dt-exec /compose-entrypoint.sh
 
 # wait for app to end
 dt-launchfile-join
