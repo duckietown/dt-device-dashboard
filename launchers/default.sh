@@ -10,16 +10,10 @@ dt-launchfile-init
 
 # constants
 HOSTNAME=$(hostname)
-ROBOT_TYPE='device'
-ROBOT_TYPE_FILE=/data/config/robot_type
 
-# read robot type
-if [ -f $ROBOT_TYPE_FILE ]; then
-  ROBOT_TYPE=$(head -1 /data/config/robot_type)
-fi
-
-# gain access to dt-commons code
-export PYTHONPATH="/code/dt-commons/packages:$PYTHONPATH"
+# add user www-data to group duckie[1000]
+groupadd --gid 1000 duckie
+usermod -aG duckie www-data
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."

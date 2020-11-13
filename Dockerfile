@@ -45,9 +45,11 @@ ARG LAUNCHER
 # check build arguments
 RUN dt-build-env-check "${REPO_NAME}" "${MAINTAINER}" "${DESCRIPTION}"
 
+# code environment
+ENV SOURCE_DIR /code
+ENV LAUNCH_DIR /launch
+
 # define/create repository path
-ARG SOURCE_DIR="/code"
-ARG LAUNCH_DIR="/launch"
 ARG REPO_PATH="${SOURCE_DIR}/${REPO_NAME}"
 ARG LAUNCH_PATH="${LAUNCH_DIR}/${REPO_NAME}"
 RUN mkdir -p "${REPO_PATH}"
