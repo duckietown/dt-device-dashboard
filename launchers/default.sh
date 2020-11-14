@@ -12,8 +12,19 @@ dt-launchfile-init
 HOSTNAME=$(hostname)
 
 # add user www-data to group duckie[1000]
-groupadd --gid 1000 duckie
-usermod -aG duckie www-data
+GID=1000
+GNAME=duckie
+if [ ! "$(getent group "${GID}")" ]; then
+    echo "Creating a group '${GNAME}' with GID:${GID} for the user www-data"
+    # create group
+    groupadd --gid ${GID} ${GNAME}
+    usermod -aG ${GNAME} www-data
+else
+    GROUP_STR=$(getent group ${GID})
+    readarray -d : -t strarr <<< "$GROUP_STR"
+    GNAME="${strarr[0]}"
+    echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
+fi
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."
