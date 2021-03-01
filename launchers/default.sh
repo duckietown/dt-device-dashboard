@@ -33,8 +33,22 @@ compose configuration/set --package core \
   "navbar_subtitle=(${ROBOT_TYPE})" \
   "website_name=${ROBOT_TYPE^} Dashboard" \
   "logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png"
+  "logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
+  "logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
+  "logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png"
 
+# configure `elfinder` package
+compose configuration/set --package elfinder \
+    mounts/mount0/driver=LocalFileSystem \
+    mounts/mount0/enabled=1 \
+    mounts/mount0/alias=data \
+    mounts/mount0/path=/data
+
+# disable apache logging to stdout
+rm -f /var/log/apache2/access.log
+ln -s /dev/null /var/log/apache2/access.log
+
+# advertise the dashboard over zeroconf
 dt-exec dt-advertise --name "DASHBOARD"
 
 # ----------------------------------------------------------------------------
