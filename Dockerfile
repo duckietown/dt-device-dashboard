@@ -120,6 +120,7 @@ RUN compose configuration/set --package core \
     administrator_default_page=profile \
     login_enabled=1 \
     cache_enabled=1 \
+    check_updates=0 \
     theme=core:modern \
     favicon=duckietown
 
