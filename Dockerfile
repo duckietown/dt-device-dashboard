@@ -8,7 +8,7 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG COMPOSE_VERSION=v1.1.5
+ARG COMPOSE_VERSION=v1.1.6
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
