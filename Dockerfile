@@ -17,7 +17,8 @@ ARG LAUNCHER=default
 ARG SUPER_IMAGE=dt-commons
 ARG DISTRO=daffy
 ARG SUPER_IMAGE_TAG=${DISTRO}-${ARCH}
-FROM duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
+ARG DOCKER_REGISTRY=docker.io
+FROM ${DOCKER_REGISTRY}/duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
 
 # define base image
 FROM afdaniele/${BASE_IMAGE}:${BASE_TAG}
