@@ -8,16 +8,17 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG COMPOSE_VERSION=v1.0.5
+ARG COMPOSE_VERSION=v1.1.6
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
 
 # extend dt-commons
 ARG SUPER_IMAGE=dt-commons
-ARG DISTRO=ente
+ARG DISTRO=daffy
 ARG SUPER_IMAGE_TAG=${DISTRO}-${ARCH}
-FROM duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
+ARG DOCKER_REGISTRY=docker.io
+FROM ${DOCKER_REGISTRY}/duckietown/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
 
 # define base image
 FROM afdaniele/${BASE_IMAGE}:${BASE_TAG}
@@ -45,9 +46,11 @@ ARG LAUNCHER
 # check build arguments
 RUN dt-build-env-check "${REPO_NAME}" "${MAINTAINER}" "${DESCRIPTION}"
 
+# code environment
+ENV SOURCE_DIR /code
+ENV LAUNCH_DIR /launch
+
 # define/create repository path
-ARG SOURCE_DIR="/code"
-ARG LAUNCH_DIR="/launch"
 ARG REPO_PATH="${SOURCE_DIR}/${REPO_NAME}"
 ARG LAUNCH_PATH="${LAUNCH_DIR}/${REPO_NAME}"
 RUN mkdir -p "${REPO_PATH}"
@@ -118,6 +121,7 @@ RUN compose configuration/set --package core \
     administrator_default_page=profile \
     login_enabled=1 \
     cache_enabled=1 \
+    check_updates=0 \
     theme=core:modern \
     favicon=duckietown
 
@@ -130,7 +134,8 @@ RUN compose theme/set \
     colors/tertiary=#646464
 
 # disable unused pages
-RUN compose page/disable --package data --page data-viewer
+RUN compose page/disable --package data \
+    --page data-viewer
 
 # configure HTTP
 ENV HTTP_PORT 8080
