@@ -114,6 +114,7 @@ LABEL org.duckietown.label.module.type="${REPO_NAME}" \
 USER www-data
 
 # configure \compose\
+# TODO: check_updates=0 here does not seem to have an effect
 RUN compose configuration/set --package core \
     guest_default_page=robot \
     user_default_page=profile \
