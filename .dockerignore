@@ -4,7 +4,7 @@
 # Allow files and directories
 !assets
 !dependencies-apt.txt
-!dependencies-py3.txt
+!dependencies-py3.*
 !dependencies-compose.txt
 !launchers
 
