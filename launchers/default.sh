@@ -51,6 +51,12 @@ ln -s /dev/null /var/log/apache2/access.log
 # advertise the dashboard over zeroconf
 dt-exec dt-advertise --name "DASHBOARD"
 
+# keep sudo writers to some important host files
+if [ -f /host/etc/hostname ]; then
+    mkdir -p /tmp/sockets/etc
+    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc.sock,fork OPEN:/host/etc/hostname,trunc
+fi
+
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
