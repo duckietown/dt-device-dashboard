@@ -52,9 +52,15 @@ ln -s /dev/null /var/log/apache2/access.log
 dt-exec dt-advertise --name "DASHBOARD"
 
 # keep sudo writers to some important host files
+# - hostname
 if [ -f /host/etc/hostname ]; then
     mkdir -p /tmp/sockets/etc
-    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc.sock,fork OPEN:/host/etc/hostname,trunc
+    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc/hostname.sock,fork OPEN:/host/etc/hostname,trunc
+fi
+# - wifi configuration
+if [ -f /host/etc/wpa_supplicant.conf ]; then
+    mkdir -p /tmp/sockets/etc
+    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc/wpa_supplicant.conf.sock,fork OPEN:/host/etc/wpa_supplicant.conf,trunc
 fi
 
 # ----------------------------------------------------------------------------
