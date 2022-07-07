@@ -54,13 +54,23 @@ dt-exec dt-advertise --name "DASHBOARD"
 # keep sudo writers to some important host files
 # - hostname
 if [ -f /host/etc/hostname ]; then
+    set -e
     mkdir -p /tmp/sockets/etc
-    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc/hostname.sock,fork OPEN:/host/etc/hostname,trunc
+    socket_fpath=/tmp/sockets/etc/hostname.sock
+    dt-exec socat UNIX-LISTEN:${socket_fpath},fork OPEN:/host/etc/hostname,trunc
+    while [ ! -S ${socket_fpath} ]; do sleep 0.2; done
+    chmod a+w ${socket_fpath}
+    set +e
 fi
 # - wifi configuration
 if [ -f /host/etc/wpa_supplicant.conf ]; then
+    set -e
     mkdir -p /tmp/sockets/etc
-    dt-exec socat UNIX-LISTEN:/tmp/sockets/etc/wpa_supplicant.conf.sock,fork OPEN:/host/etc/wpa_supplicant.conf,trunc
+    socket_fpath=/tmp/sockets/etc/wpa_supplicant.conf.sock
+    dt-exec socat UNIX-LISTEN:${socket_fpath},fork OPEN:/host/etc/wpa_supplicant.conf,trunc
+    while [ ! -S ${socket_fpath} ]; do sleep 0.2; done
+    chmod a+w ${socket_fpath}
+    set +e
 fi
 
 # ----------------------------------------------------------------------------
