@@ -8,7 +8,7 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm64v8
-ARG COMPOSE_VERSION=v1.1.7
+ARG COMPOSE_VERSION=v1.1.8
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
@@ -137,6 +137,8 @@ RUN compose theme/set \
 # disable unused pages
 RUN compose page/disable --package data \
     --page data-viewer
+RUN compose page/disable --package core \
+    --page api
 
 # configure HTTP
 ENV HTTP_PORT 8080
