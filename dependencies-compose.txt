@@ -4,7 +4,7 @@ duckietown_duckiedrone==v1.0.4
 duckietown_ros==v0.0.1
 duckietown==v1.1.2
 portainer==v1.0.1
-ros==v1.0.0
+ros==v1.0.1
 data==v1.0.0
 elfinder==v0.0.5
 vscode==v0.0.1
