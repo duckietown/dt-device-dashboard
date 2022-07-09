@@ -2,7 +2,7 @@
 duckietown_duckiebot==v1.4.13
 duckietown_duckiedrone==v1.0.5
 duckietown_ros==v0.0.1
-duckietown==v1.1.2
+duckietown==v1.1.3
 portainer==v1.0.1
 ros==v1.0.1
 data==v1.0.0
