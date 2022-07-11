@@ -139,6 +139,8 @@ RUN compose page/disable --package data \
     --page data-viewer
 RUN compose page/disable --package core \
     --page api
+RUN compose page/disable --package duckietown_duckiebot \
+    --page desktop
 
 # configure HTTP
 ENV HTTP_PORT 8080
