@@ -1,5 +1,5 @@
 # LIST YOUR COMPOSE PACKAGES HERE
-duckietown_duckiebot==v1.4.15
+duckietown_duckiebot==v1.4.16
 duckietown_duckiedrone==v1.0.7
 duckietown_ros==v0.0.1
 duckietown==v1.1.3
