@@ -1,10 +1,10 @@
 # LIST YOUR COMPOSE PACKAGES HERE
 duckietown_duckiebot==v1.4.16
-duckietown_duckiedrone==v1.0.7
+duckietown_duckiedrone==v1.0.8
 duckietown_ros==v0.0.1
 duckietown==v1.1.4
 portainer==v1.0.1
-ros==v1.0.2
+ros==v1.0.3
 data==v1.0.0
 elfinder==v0.0.5
 vscode==v0.0.1
