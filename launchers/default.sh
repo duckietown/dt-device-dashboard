@@ -26,6 +26,10 @@ else
     echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
 fi
 
+# give the group `duckie` access to the secrets
+chgrp ${GNAME} /secrets/tokens
+chmod g+w /secrets/tokens
+
 # configure \compose\
 echo "Configuring \\compose\\ ..."
 compose configuration/set --package core \
