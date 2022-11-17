@@ -69,9 +69,14 @@ ENV DT_LAUNCHER "${LAUNCHER}"
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
 
+# upgrade PIP
+RUN python3 -m pip install pip==20.3.4 && \
+    ln -s $(which python3.8) /usr/bin/pip3.8
+
 # install python3 dependencies
 COPY ./dependencies-py3.* "${REPO_PATH}/"
-RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.*"
+# TODO: we cannot use the .resolved file because pip is too old on python3.5 (upgrade compose env)
+RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.txt"
 
 # copy dependencies files only
 COPY ./dependencies-compose.txt "${REPO_PATH}/"
