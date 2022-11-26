@@ -11,9 +11,9 @@ dt-launchfile-init
 # constants
 HOSTNAME=$(hostname)
 
-# add user www-data to group duckie[1000]
-GID=1000
-GNAME=duckie
+# add user www-data to group `duckie`
+GID=${DT_GROUP_GID}
+GNAME=${DT_GROUP_NAME}
 if [ ! "$(getent group "${GID}")" ]; then
     echo "Creating a group '${GNAME}' with GID:${GID} for the user www-data"
     # create group
