@@ -65,6 +65,9 @@ ENV DT_REPO_PATH "${REPO_PATH}"
 ENV DT_LAUNCH_PATH "${LAUNCH_PATH}"
 ENV DT_LAUNCHER "${LAUNCHER}"
 
+# configure HTTP port
+ENV HTTP_PORT 8080
+
 # install apt dependencies
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
@@ -141,9 +144,6 @@ RUN compose theme/set \
 # disable unused pages
 RUN compose page/disable --package data \
     --page data-viewer
-
-# configure HTTP
-ENV HTTP_PORT 8080
 
 # switch back to root
 USER root
