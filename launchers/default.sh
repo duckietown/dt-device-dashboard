@@ -10,21 +10,26 @@ dt-launchfile-init
 
 # constants
 HOSTNAME=$(hostname)
+DATA_DIR=/data
 
-# add user www-data to group `duckie`
-GID=${DT_GROUP_GID}
-GNAME=${DT_GROUP_NAME}
+# get GID of the data dir
+GID=$(stat -c %g "${DATA_DIR}")
+GNAME=dataers
+# check if we have a group with that ID already
 if [ ! "$(getent group "${GID}")" ]; then
-    echo "Creating a group '${GNAME}' with GID:${GID} for the user www-data"
-    # create group
-    groupadd --gid ${GID} ${GNAME}
-    usermod -aG ${GNAME} www-data
+  echo "Creating a group '${GNAME}' with GID:${GID} for the directory '${DATA_DIR}'"
+  # create group
+  groupadd --gid ${GID} ${GNAME}
 else
-    GROUP_STR=$(getent group ${GID})
-    readarray -d : -t strarr <<< "$GROUP_STR"
-    GNAME="${strarr[0]}"
-    echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
+  GROUP_STR=$(getent group ${GID})
+  readarray -d : -t strarr <<< "$GROUP_STR"
+  GNAME="${strarr[0]}"
+  echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
 fi
+
+# add user www-data to group
+echo "Adding user 'www-data' to the group '${GNAME}' (GID:${GID})."
+usermod -aG ${GNAME} www-data
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."
@@ -47,9 +52,6 @@ compose configuration/set --package elfinder \
 # disable apache logging to stdout
 rm -f /var/log/apache2/access.log
 ln -s /dev/null /var/log/apache2/access.log
-
-# advertise the dashboard over zeroconf
-dt-exec dt-advertise --name "DASHBOARD"
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
