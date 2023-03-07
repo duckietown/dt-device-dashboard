@@ -123,33 +123,3 @@ LABEL org.duckietown.label.module.type="${REPO_NAME}" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change this code
 # <==================================================
-
-# switch to simple user
-USER www-data
-
-# configure \compose\
-RUN compose configuration/set --package core \
-    guest_default_page=robot \
-    user_default_page=profile \
-    supervisor_default_page=profile \
-    administrator_default_page=profile \
-    login_enabled=1 \
-    cache_enabled=1 \
-    check_updates=0 \
-    theme=core:modern \
-    favicon=duckietown
-
-# configure theme
-RUN compose theme/set \
-    colors/primary/background=#2c5686 \
-    colors/primary/foreground=#bceaff \
-    colors/secondary/background=#ffc611 \
-    colors/secondary/foreground=#1e1e1e \
-    colors/tertiary=#646464
-
-# disable unused pages
-RUN compose page/disable --package data \
-    --page data-viewer
-
-# switch back to root
-USER root

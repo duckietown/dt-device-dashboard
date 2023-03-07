@@ -34,13 +34,37 @@ usermod -aG ${GNAME} www-data
 # configure \compose\
 echo "Configuring \\compose\\ ..."
 compose configuration/set --package core \
-  "navbar_title=${HOSTNAME}" \
+  navbar_title=${HOSTNAME} \
+  logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   "navbar_subtitle=(${ROBOT_TYPE})" \
   "website_name=${ROBOT_TYPE^} Dashboard" \
-  "logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png"
+
+# configure \compose\
+compose configuration/set --package core \
+    guest_default_page=robot \
+    user_default_page=profile \
+    supervisor_default_page=profile \
+    administrator_default_page=profile \
+    login_enabled=1 \
+    cache_enabled=1 \
+    check_updates=0 \
+    theme=core:modern \
+    favicon=duckietown
+
+# configure theme
+compose theme/set \
+    colors/primary/background=#2c5686 \
+    colors/primary/foreground=#bceaff \
+    colors/secondary/background=#ffc611 \
+    colors/secondary/foreground=#1e1e1e \
+    colors/tertiary=#646464
+
+# disable unused pages
+compose page/disable --package data \
+    --page data-viewer
 
 # configure `elfinder` package
 compose configuration/set --package elfinder \
