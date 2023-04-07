@@ -16,9 +16,9 @@
 [submodule "sandbox/user-data/packages/duckietown"]
 	path = sandbox/user-data/packages/duckietown
 	url = git@github.com:duckietown/compose-pkg-duckietown
-[submodule "sandbox/user-data/packages/duckietown_duckiebot"]
+[submodule "sandbox/user-data/packages/duckietown-duckiebot"]
 	path = sandbox/user-data/packages/duckietown-duckiebot
 	url = git@github.com:duckietown/compose-pkg-duckietown-duckiebot
-[submodule "sandbox/user-data/packages/duckietown_ros"]
+[submodule "sandbox/user-data/packages/duckietown-ros"]
 	path = sandbox/user-data/packages/duckietown-ros
 	url = git@github.com:duckietown/compose-pkg-duckietown-ros
