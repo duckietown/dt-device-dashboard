@@ -15,7 +15,7 @@ init:
 	docker -H=${H} run \
 		-it \
 		--rm \
-		-u $(id -u):$(id -g) \
+		-u $(shell id -u):$(shell id -g) \
 		-v "${DIR}/user-data:/user-data" \
 		"${IMAGE}:${VERSION}-${ARCH}" \
 			dt-launcher-install-compose-packages
@@ -24,11 +24,11 @@ _clone_compose:
 	test -d ${DIR}/compose || git clone git@github.com:afdaniele/compose ${DIR}/compose
 
 
-run: init
+run:
 	docker -H=${H} run \
 		-it \
 		--rm \
-		-p 8888:80/tcp \
+		-p 8888:8080/tcp \
 		-v "${DIR}/user-data:/user-data" \
 		${EXTRA_ARGS} \
 		--name "${CONTAINER_NAME}" \
