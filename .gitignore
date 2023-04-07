@@ -1,1 +1,4 @@
 *.resolved
+
+sandbox/compose/*
+sandbox/user-data/*
