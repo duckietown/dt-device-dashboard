@@ -1,24 +1,3 @@
 [submodule "sandbox/compose"]
 	path = sandbox/compose
 	url = git@github.com:afdaniele/compose
-[submodule "sandbox/user-data/packages/data"]
-	path = sandbox/user-data/packages/data
-	url = git@github.com:afdaniele/compose-pkg-data
-[submodule "sandbox/user-data/packages/elfinder"]
-	path = sandbox/user-data/packages/elfinder
-	url = git@github.com:afdaniele/compose-pkg-elfinder
-[submodule "sandbox/user-data/packages/portainer"]
-	path = sandbox/user-data/packages/portainer
-	url = git@github.com:afdaniele/compose-pkg-portainer
-[submodule "sandbox/user-data/packages/ros"]
-	path = sandbox/user-data/packages/ros
-	url = git@github.com:afdaniele/compose-pkg-ros
-[submodule "sandbox/user-data/packages/duckietown"]
-	path = sandbox/user-data/packages/duckietown
-	url = git@github.com:duckietown/compose-pkg-duckietown
-[submodule "sandbox/user-data/packages/duckietown-duckiebot"]
-	path = sandbox/user-data/packages/duckietown-duckiebot
-	url = git@github.com:duckietown/compose-pkg-duckietown-duckiebot
-[submodule "sandbox/user-data/packages/duckietown-ros"]
-	path = sandbox/user-data/packages/duckietown-ros
-	url = git@github.com:duckietown/compose-pkg-duckietown-ros
