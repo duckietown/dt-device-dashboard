@@ -1,7 +1,4 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
-
-# last versions supporting python3.5 (3.5 comes from the compose base image)
-zeroconf==0.28.8
-ifaddr==0.1.7
+# NOTE: only place non-Duckietown libraries here; pin versions only if necessary
 
 netifaces

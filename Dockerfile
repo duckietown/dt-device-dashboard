@@ -1,14 +1,14 @@
 # parameters
-ARG REPO_NAME="device-dashboard"
+ARG REPO_NAME="dt-device-dashboard"
 ARG DESCRIPTION="Provides the on-board Dashboard for Duckietown robots"
-ARG MAINTAINER="Andrea F. Daniele (afdaniele@ttic.edu)"
+ARG MAINTAINER="Andrea F. Daniele (afdaniele@duckietown.com)"
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 ARG ICON="dashboard"
 
 # ==================================================>
 # ==> Do not change this code
-ARG ARCH=arm64v8
-ARG COMPOSE_VERSION=v1.1.8
+ARG ARCH
+ARG COMPOSE_VERSION=v1.1.10
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default
@@ -57,21 +57,35 @@ RUN mkdir -p "${REPO_PATH}"
 RUN mkdir -p "${LAUNCH_PATH}"
 
 # keep some arguments as environment variables
-ENV DT_MODULE_TYPE "${REPO_NAME}"
-ENV DT_MODULE_DESCRIPTION "${DESCRIPTION}"
-ENV DT_MODULE_ICON "${ICON}"
-ENV DT_MAINTAINER "${MAINTAINER}"
-ENV DT_REPO_PATH "${REPO_PATH}"
-ENV DT_LAUNCH_PATH "${LAUNCH_PATH}"
-ENV DT_LAUNCHER "${LAUNCHER}"
+ENV DT_MODULE_TYPE="${REPO_NAME}" \
+    DT_MODULE_DESCRIPTION="${DESCRIPTION}" \
+    DT_MODULE_ICON="${ICON}" \
+    DT_MAINTAINER="${MAINTAINER}" \
+    DT_REPO_PATH="${REPO_PATH}" \
+    DT_LAUNCH_PATH="${LAUNCH_PATH}" \
+    DT_LAUNCHER="${LAUNCHER}"
+
+# duckie user
+ENV DT_USER_NAME="duckie" \
+    DT_USER_UID=2222 \
+    DT_GROUP_NAME="duckie" \
+    DT_GROUP_GID=2222
+
+# configure HTTP port
+ENV HTTP_PORT 8080
 
 # install apt dependencies
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
 
+# upgrade PIP
+RUN python3 -m pip install pip==20.3.4 && \
+    ln -s $(which python3.8) /usr/bin/pip3.8
+
 # install python3 dependencies
-COPY ./dependencies-py3.txt "${REPO_PATH}/"
-RUN pip3 install -r ${REPO_PATH}/dependencies-py3.txt
+COPY ./dependencies-py3.* "${REPO_PATH}/"
+# TODO: we cannot use the .resolved file because pip is too old on python3.5 (upgrade compose env)
+RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.txt"
 
 # copy dependencies files only
 COPY ./dependencies-compose.txt "${REPO_PATH}/"
@@ -109,41 +123,3 @@ LABEL org.duckietown.label.module.type="${REPO_NAME}" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change this code
 # <==================================================
-
-# switch to simple user
-USER www-data
-
-# configure \compose\
-# TODO: check_updates=0 here does not seem to have an effect
-RUN compose configuration/set --package core \
-    guest_default_page=robot \
-    user_default_page=profile \
-    supervisor_default_page=profile \
-    administrator_default_page=profile \
-    login_enabled=1 \
-    cache_enabled=1 \
-    check_updates=0 \
-    theme=core:modern \
-    favicon=duckietown
-
-# configure theme
-RUN compose theme/set \
-    colors/primary/background=#2c5686 \
-    colors/primary/foreground=#bceaff \
-    colors/secondary/background=#ffc611 \
-    colors/secondary/foreground=#1e1e1e \
-    colors/tertiary=#646464
-
-# disable unused pages
-RUN compose page/disable --package data \
-    --page data-viewer
-RUN compose page/disable --package core \
-    --page api
-RUN compose page/disable --package duckietown_duckiebot \
-    --page desktop
-
-# configure HTTP
-ENV HTTP_PORT 8080
-
-# switch back to root
-USER root

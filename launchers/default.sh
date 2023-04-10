@@ -10,36 +10,61 @@ dt-launchfile-init
 
 # constants
 HOSTNAME=$(hostname)
+DATA_DIR=/data
 
-# add user www-data to group duckie[1000]
-GID=1000
-GNAME=duckie
+# get GID of the data dir
+GID=$(stat -c %g "${DATA_DIR}")
+GNAME=dataers
+# check if we have a group with that ID already
 if [ ! "$(getent group "${GID}")" ]; then
-    echo "Creating a group '${GNAME}' with GID:${GID} for the user www-data"
-    # create group
-    groupadd --gid ${GID} ${GNAME}
-    usermod -aG ${GNAME} www-data
+  echo "Creating a group '${GNAME}' with GID:${GID} for the directory '${DATA_DIR}'"
+  # create group
+  groupadd --gid ${GID} ${GNAME}
 else
-    GROUP_STR=$(getent group ${GID})
-    readarray -d : -t strarr <<< "$GROUP_STR"
-    GNAME="${strarr[0]}"
-    echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
+  GROUP_STR=$(getent group ${GID})
+  readarray -d : -t strarr <<< "$GROUP_STR"
+  GNAME="${strarr[0]}"
+  echo "A group with GID:${GID} (i.e., ${GNAME}) already exists. Reusing it."
 fi
 
-# give the group `duckie` access to the secrets
-chgrp ${GNAME} /secrets/tokens
-chmod g+w /secrets/tokens
+# add user www-data to group
+echo "Adding user 'www-data' to the group '${GNAME}' (GID:${GID})."
+usermod -aG ${GNAME} www-data
 
 # configure \compose\
 echo "Configuring \\compose\\ ..."
 compose configuration/set --package core \
-  "navbar_title=${HOSTNAME}" \
+  navbar_title=${HOSTNAME} \
+  logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+  logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   "navbar_subtitle=(${ROBOT_TYPE})" \
   "website_name=${ROBOT_TYPE^} Dashboard" \
-  "logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png" \
-  "logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png"
+
+# configure \compose\
+compose configuration/set --package core \
+    guest_default_page=robot \
+    user_default_page=profile \
+    supervisor_default_page=profile \
+    administrator_default_page=profile \
+    login_enabled=1 \
+    cache_enabled=1 \
+    check_updates=0 \
+    theme=core:modern \
+    favicon=duckietown
+
+# configure theme
+compose theme/set \
+    colors/primary/background=#2c5686 \
+    colors/primary/foreground=#bceaff \
+    colors/secondary/background=#ffc611 \
+    colors/secondary/foreground=#1e1e1e \
+    colors/tertiary=#646464
+
+# disable unused pages
+compose page/disable --package data \
+    --page data-viewer
 
 # configure `elfinder` package
 compose configuration/set --package elfinder \
@@ -51,9 +76,6 @@ compose configuration/set --package elfinder \
 # disable apache logging to stdout
 rm -f /var/log/apache2/access.log
 ln -s /dev/null /var/log/apache2/access.log
-
-# advertise the dashboard over zeroconf
-dt-exec dt-advertise --name "DASHBOARD"
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE

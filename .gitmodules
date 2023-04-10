@@ -1,0 +1,3 @@
+[submodule "sandbox/compose"]
+	path = sandbox/compose
+	url = git@github.com:afdaniele/compose
