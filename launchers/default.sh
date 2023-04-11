@@ -40,7 +40,7 @@ compose configuration/set --package core \
   logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   "navbar_subtitle=(${ROBOT_TYPE})" \
-  "website_name=${ROBOT_TYPE^} Dashboard" \
+  "website_name=${ROBOT_TYPE^} Dashboard"
 
 # configure \compose\
 compose configuration/set --package core \
@@ -72,6 +72,9 @@ compose configuration/set --package elfinder \
     mounts/mount0/enabled=1 \
     mounts/mount0/alias=data \
     mounts/mount0/path=/data
+
+# make sure all databases belong to www-data
+chown -R www-data:www-data /user-data/databases
 
 # disable apache logging to stdout
 rm -f /var/log/apache2/access.log
