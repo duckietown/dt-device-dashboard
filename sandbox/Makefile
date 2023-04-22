@@ -11,6 +11,7 @@ MKFILE_FPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 DIR=$(patsubst %/,%,$(dir $(MKFILE_FPATH)))
 EXTRA_ARGS=-v "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket"
 
+
 init:
 	docker -H=${H} run \
 		-it \
@@ -19,6 +20,7 @@ init:
 		-v "${DIR}/user-data:/user-data" \
 		"${IMAGE}:${VERSION}-${ARCH}" \
 			dt-launcher-install-compose-packages
+	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
 
 _clone_compose:
 	test -d ${DIR}/compose || git clone git@github.com:afdaniele/compose ${DIR}/compose
