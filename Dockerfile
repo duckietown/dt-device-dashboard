@@ -123,3 +123,7 @@ LABEL org.duckietown.label.module.type="${REPO_NAME}" \
     org.duckietown.label.maintainer="${MAINTAINER}"
 # <== Do not change this code
 # <==================================================
+
+# create health file
+RUN echo ND > /health &&  \
+    chmod 777 /health
