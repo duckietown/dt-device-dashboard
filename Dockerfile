@@ -8,7 +8,7 @@ ARG ICON="dashboard"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH
-ARG COMPOSE_VERSION=v1.2.0-rc1
+ARG COMPOSE_VERSION=v1.2.0-rc3
 ARG BASE_IMAGE=compose
 ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
 ARG LAUNCHER=default

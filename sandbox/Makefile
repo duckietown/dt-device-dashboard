@@ -32,6 +32,7 @@ run:
 		--rm \
 		-p 8888:8080/tcp \
 		-v "${DIR}/user-data:/user-data" \
+		-v "${DIR}/data:/data" \
 		${EXTRA_ARGS} \
 		--name "${CONTAINER_NAME}" \
 		"${IMAGE}:${VERSION}-${ARCH}"
