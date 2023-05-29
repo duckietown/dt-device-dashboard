@@ -82,9 +82,8 @@ compose configuration/set --package elfinder \
 # make sure all databases belong to www-data
 chown -R www-data:www-data /user-data/databases
 
-# disable apache logging to stdout
-rm -f /var/log/apache2/access.log
-ln -s /dev/null /var/log/apache2/access.log
+# disable nginx logging to stdout
+# TODO
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
