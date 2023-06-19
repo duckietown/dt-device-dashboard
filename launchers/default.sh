@@ -77,6 +77,11 @@ compose configuration/set --package elfinder \
 rm -f /var/log/apache2/access.log
 ln -s /dev/null /var/log/apache2/access.log
 
+# make databases writable by www-data
+if [ -d /user-data/databases ]; then
+    chown -R www-data:www-data /user-data/databases
+fi
+
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
