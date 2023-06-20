@@ -11,6 +11,7 @@ MKFILE_FPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 DIR=$(patsubst %/,%,$(dir $(MKFILE_FPATH)))
 EXTRA_ARGS=-v "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket"
 
+
 init:
 	docker -H=${H} run \
 		-it \
@@ -31,6 +32,7 @@ run:
 		--rm \
 		-p 8888:8080/tcp \
 		-v "${DIR}/user-data:/user-data" \
+		-v "${DIR}/data:/data" \
 		${EXTRA_ARGS} \
 		--name "${CONTAINER_NAME}" \
 		"${IMAGE}:${VERSION}-${ARCH}"

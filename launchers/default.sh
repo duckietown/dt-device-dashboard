@@ -40,7 +40,7 @@ compose configuration/set --package core \
   logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
   "navbar_subtitle=(${ROBOT_TYPE})" \
-  "website_name=${ROBOT_TYPE^} Dashboard" \
+  "website_name=${ROBOT_TYPE^} Dashboard"
 
 # configure \compose\
 compose configuration/set --package core \
@@ -63,8 +63,14 @@ compose theme/set \
     colors/tertiary=#646464
 
 # disable unused pages
+compose page/disable --package core \
+    --page api
 compose page/disable --package data \
     --page data-viewer
+compose page/disable --package vscode \
+    --page vscode
+compose page/disable --package duckietown_duckiebot \
+    --page desktop
 
 # configure `elfinder` package
 compose configuration/set --package elfinder \
@@ -73,14 +79,13 @@ compose configuration/set --package elfinder \
     mounts/mount0/alias=data \
     mounts/mount0/path=/data
 
-# disable apache logging to stdout
-rm -f /var/log/apache2/access.log
-ln -s /dev/null /var/log/apache2/access.log
-
-# make databases writable by www-data
+# make sure all databases belong to www-data
 if [ -d /user-data/databases ]; then
     chown -R www-data:www-data /user-data/databases
 fi
+
+# disable nginx logging to stdout
+# TODO
 
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
