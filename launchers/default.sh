@@ -67,8 +67,6 @@ compose page/disable --package core \
     --page api
 compose page/disable --package data \
     --page data-viewer
-compose page/disable --package vscode \
-    --page vscode
 compose page/disable --package duckietown_duckiebot \
     --page desktop
 
