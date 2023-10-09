@@ -27,9 +27,9 @@ FROM ${DOCKER_REGISTRY}/${SUPER_ORGANIZATION}/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} 
 # define base image
 FROM docker.io/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG} as base
 
-# environment
-ENV SOURCE_DIR /code/src
-ENV LAUNCHERS_DIR /launch
+# code environment
+ENV SOURCE_DIR="/code/src" \
+    LAUNCHERS_DIR="/launch"
 
 # move compose entrypoint
 RUN cp /entrypoint.sh /compose-entrypoint.sh

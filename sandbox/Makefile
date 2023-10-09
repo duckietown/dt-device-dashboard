@@ -4,7 +4,7 @@
 DEFAULT_ARCH=amd64
 ARCH=${DEFAULT_ARCH}
 IMAGE=${DOCKER_REGISTRY}/duckietown/dt-device-dashboard
-VERSION=ente-staging
+VERSION=ente
 H=unix:///var/run/docker.sock
 CONTAINER_NAME=device-dashboard-sandbox
 MKFILE_FPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
@@ -16,8 +16,8 @@ init:
 	docker -H=${H} run \
 		-it \
 		--rm \
-		-u $(shell id -u):$(shell id -g) \
 		-v "${DIR}/user-data:/user-data" \
+		-e DT_IMPERSONATE_UID=$(shell id -u) \
 		"${IMAGE}:${VERSION}-${ARCH}" \
 			dt-launcher-install-compose-packages
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
