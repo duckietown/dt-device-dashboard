@@ -3,7 +3,7 @@ ARG PROJECT_NAME
 ARG PROJECT_DESCRIPTION
 ARG PROJECT_MAINTAINER
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
-ARG PROJECT_ICON="dashboard"
+ARG PROJECT_ICON="cube"
 ARG PROJECT_FORMAT_VERSION
 
 # ==================================================>
@@ -12,33 +12,12 @@ ARG ARCH
 ARG DISTRO
 ARG DOCKER_REGISTRY
 ARG BASE_REPOSITORY
-ARG BASE_ORGANIZATION
-ARG COMPOSE_VERSION=v1.2.1
-ARG BASE_TAG=${COMPOSE_VERSION}-${ARCH}
+ARG BASE_ORGANIZATION=duckietown
+ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
-# extend dt-commons
-ARG SUPER_ORGANIZATION=duckietown
-ARG SUPER_IMAGE=dt-commons
-ARG SUPER_IMAGE_TAG=${DISTRO}-${ARCH}
-ARG DOCKER_REGISTRY=docker.io
-FROM ${DOCKER_REGISTRY}/${SUPER_ORGANIZATION}/${SUPER_IMAGE}:${SUPER_IMAGE_TAG} as dt-commons
-
 # define base image
-FROM docker.io/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG} as base
-
-# code environment
-ENV SOURCE_DIR="/code/src" \
-    LAUNCHERS_DIR="/launch"
-
-# move compose entrypoint
-RUN cp /entrypoint.sh /compose-entrypoint.sh
-
-# copy stuff from the super image
-COPY --from=dt-commons /entrypoint.sh /entrypoint.sh
-COPY --from=dt-commons /environment.sh /environment.sh
-COPY --from=dt-commons /usr/local/bin/dt-* /usr/local/bin/
-COPY --from=dt-commons ${SOURCE_DIR}/dt-commons ${SOURCE_DIR}/dt-commons
+FROM ${DOCKER_REGISTRY}/${BASE_ORGANIZATION}/${BASE_REPOSITORY}:${BASE_TAG} as base
 
 # recall all arguments
 ARG ARCH
@@ -87,16 +66,6 @@ ENV DT_PROJECT_NAME="${PROJECT_NAME}" \
     DT_PROJECT_LAUNCHERS_PATH="${PROJECT_LAUNCHERS_PATH}" \
     DT_LAUNCHER="${LAUNCHER}"
 
-# TODO: this should not be needed anymore, double check
-# duckie user
-#ENV DT_USER_NAME="duckie" \
-#    DT_USER_UID=2222 \
-#    DT_GROUP_NAME="duckie" \
-#    DT_GROUP_GID=2222
-
-# configure HTTP port
-ENV HTTP_PORT 8080
-
 # install apt dependencies
 COPY ./dependencies-apt.txt "${PROJECT_PATH}/"
 RUN dt-apt-install ${PROJECT_PATH}/dependencies-apt.txt
@@ -118,6 +87,9 @@ RUN python3 ${COMPOSE_DIR}/public_html/system/lib/python/compose/package_manager
 # switch back to root
 USER root
 
+# copy the source code
+COPY ./packages "${PROJECT_PATH}/packages"
+
 # install launcher scripts
 COPY ./launchers/. "${PROJECT_LAUNCHERS_PATH}/"
 RUN dt-install-launchers "${PROJECT_LAUNCHERS_PATH}"
@@ -125,9 +97,6 @@ RUN dt-install-launchers "${PROJECT_LAUNCHERS_PATH}"
 # install scripts
 COPY ./assets/entrypoint.d "${PROJECT_PATH}/assets/entrypoint.d"
 COPY ./assets/environment.d "${PROJECT_PATH}/assets/environment.d"
-
-# reset the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
 
 # define default command
 CMD ["bash", "-c", "dt-launcher-${DT_LAUNCHER}"]
@@ -169,7 +138,3 @@ USER www-data
 
 # switch back to root
 USER root
-
-# create health file
-RUN echo ND > /health &&  \
-    chmod 777 /health

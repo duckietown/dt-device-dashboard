@@ -3,10 +3,12 @@
 
 # Allow files and directories
 !assets
+!packages
 !dependencies-apt.txt
 !dependencies-py3.*
 !dependencies-compose.txt
 !launchers
+!tests
 
 # YOUR FILES LISTED BELOW THIS LINE (IMPORTANT: PREPEND !)
 # ----------------------------------------------------------------------------

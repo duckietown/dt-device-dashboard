@@ -1,4 +1,4 @@
 #registry: docker.io
-organization: afdaniele
+#organization: duckietown
 #tag: <distro>-<arch>
-repository: compose
+repository: dt-compose-commons
