@@ -1,0 +1,4 @@
+#registry: docker.io
+organization: afdaniele
+#tag: <distro>-<arch>
+repository: compose
