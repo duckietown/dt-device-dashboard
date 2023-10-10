@@ -7,5 +7,5 @@ python3-wheel
 # this is necessary for mDNS
 libnss-mdns
 
-# this is needed to give www-data user write access to a set of files shared by the host
+# this is needed to give the user write access to a set of files shared by the host
 socat
