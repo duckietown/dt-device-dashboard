@@ -1,0 +1,8 @@
+name: "dt-device-dashboard"
+maintainer:
+    name: "Andrea F. Daniele"
+    email: "afdaniele@duckietown.com"
+description: "Provides the on-board Dashboard for Duckietown robots"
+version: 4.0.5
+# pick an icon from: https://fontawesome.com/v4.7.0/icons/
+icon: dashboard
