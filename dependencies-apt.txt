@@ -9,3 +9,8 @@ libnss-mdns
 
 # this is needed to give www-data user write access to a set of files shared by the host
 socat
+
+# this is needed to build the pycairo package
+pkg-config
+
+libcairo2-dev
