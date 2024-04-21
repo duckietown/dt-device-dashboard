@@ -1,4 +1,8 @@
 # LIST YOUR PYTHON3 PACKAGES HERE
-# NOTE: only place non-Duckietown libraries here; pin versions only if necessary
 
 netifaces>=0.11,<1
+
+
+# -- Duckietown --
+
+dt-authentication>=2.1.6,<3
