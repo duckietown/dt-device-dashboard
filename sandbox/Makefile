@@ -17,7 +17,7 @@ init:
 		-it \
 		--rm \
 		-v "${DIR}/user-data:/user-data" \
-		-e DT_IMPERSONATE_UID=$(shell id -u) \
+		-e IMPERSONATE_UID=$(shell id -u) \
 		"${IMAGE}:${VERSION}-${ARCH}" \
 			dt-launcher-install-compose-packages
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
