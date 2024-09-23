@@ -20,6 +20,7 @@ init:
 		-e IMPERSONATE_UID=$(shell id -u) \
 		"${IMAGE}:${VERSION}-${ARCH}" \
 			dt-launcher-install-compose-packages
+
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
 
 _clone_compose:
@@ -30,7 +31,8 @@ run:
 	docker -H=${H} run \
 		-it \
 		--rm \
-		-p 8888:8080/tcp \
+		-p 8888:80/tcp \
+		-e DT_SUPERUSER=1 \
 		-v "${DIR}/user-data:/user-data" \
 		-v "${DIR}/data:/data" \
 		${EXTRA_ARGS} \
