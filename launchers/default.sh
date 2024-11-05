@@ -94,6 +94,11 @@ if [ "${ACCESS_LOG:-}" != "1" ]; then
     sudo sed -i "s/error_log\ \/dev\/stdout\ info;/error_log\ \/dev\/stdout\ warn;/g" /etc/nginx/sites-available/default
 fi
 
+# make sure all databases belong to ${DT_USER_NAME}
+if [ -d /user-data/databases ]; then
+    chown -R ${DT_USER_NAME}:${GNAME} /user-data/databases
+fi
+
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
