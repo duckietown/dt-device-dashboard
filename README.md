@@ -60,3 +60,15 @@ cd sandbox && make run
 ```
 
 This will start the dashboard and bind it to a Unix domain socket `/run/php/php7.4-fpm.sock`. Then it will also start `nginx` and bind it to port 80 inside the container. Port 80 is mapped to port 8888 on the host machine, so you can access the dashboard by navigating to `http://localhost:8888` in your web browser.
+
+##### Using local versions of compose packages
+
+To use local versions of \compose\ packages instead of the ones installed via the `dependencies-compose.txt` file, you can mount the local directories as volumes when running the container. For example, if you have a local copy of the `duckietown_duckiedrone` package, you can run:
+
+```shell
+make run EXTRA_ARGS='-v "${HOME}/Duckietown/ente/compose/compose-pkg-duckietown-duckiedrone:/user-data/packages/duckietown_duckiedrone:rw"'
+```
+
+This will mount the local `duckietown_duckiedrone` package into the container, allowing you to use your local changes without having to push to the remote repository.
+
+Note that the package **must have been already installed** once via the `dependencies-compose.txt` file, as the package manager will not perform installation automatically when mounting local directories.
