@@ -66,9 +66,10 @@ This will start the dashboard and bind it to a Unix domain socket `/run/php/php7
 To use local versions of \compose\ packages instead of the ones installed via the `dependencies-compose.txt` file, you can mount the local directories as volumes when running the container. For example, if you have a local copy of the `duckietown_duckiedrone` package, you can run:
 
 ```shell
+cd sandbox &&
 make run EXTRA_ARGS='-v "${HOME}/Duckietown/ente/compose/compose-pkg-duckietown-duckiedrone:/user-data/packages/duckietown_duckiedrone:rw"'
 ```
 
-This will mount the local `duckietown_duckiedrone` package into the container, allowing you to use your local changes without having to push to the remote repository.
+This will mount the local `duckietown_duckiedrone` package into the container (you will need to specify the correct path, in the example above it is `${HOME}/Duckietown/ente/compose/compose-pkg-duckietown-duckiedrone`), allowing you to use your local changes without having to push to the remote repository.
 
 Note that the package **must have been already installed** once via the `dependencies-compose.txt` file, as the package manager will not perform installation automatically when mounting local directories.
