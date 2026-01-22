@@ -24,7 +24,7 @@ init:
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
 
 _clone_compose:
-	test -d ${DIR}/compose || git clone git@github.com:afdaniele/compose ${DIR}/compose
+	test -d ${DIR}/compose || git clone git@github.com:duckietown/compose ${DIR}/compose
 
 
 run:

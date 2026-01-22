@@ -102,7 +102,7 @@ fi
 # ----------------------------------------------------------------------------
 # YOUR CODE ABOVE THIS LINE
 
-# run compose entrypoint
+# run compose entrypoint (https://github.com/duckietown/compose/blob/stable/assets/entrypoint.sh)
 dt-exec /compose-entrypoint.sh
 
 # wait for app to end
