@@ -86,6 +86,27 @@ compose configuration/set --package elfinder \
     mounts/mount0/alias=data \
     mounts/mount0/path=/data
 
+# fix elfinder dependencies (install secure version and create symlinks)
+ELFINDER_PKG_DIR=/user-data/packages/elfinder
+ELFINDER_COMPOSER_DIR=${ELFINDER_PKG_DIR}/data/private/composer
+ELFINDER_PUBLIC_DIR=${ELFINDER_PKG_DIR}/data/public
+ELFINDER_PRIVATE_DIR=${ELFINDER_COMPOSER_DIR}/vendor/studio-42/elfinder
+
+if [ ! -f "${ELFINDER_COMPOSER_DIR}/vendor/autoload.php" ]; then
+    echo "Installing elfinder dependencies..."
+    mkdir -p "${ELFINDER_COMPOSER_DIR}"
+    # Install latest secure version of elfinder (2.1.66 or newer)
+    composer require --no-audit -d ${ELFINDER_COMPOSER_DIR} -- studio-42/elfinder:^2.1.66
+    
+    # Create symbolic links for static assets
+    mkdir -p "${ELFINDER_PUBLIC_DIR}"
+    for dir in js css img sounds; do
+        [ -L "${ELFINDER_PUBLIC_DIR}/${dir}" ] && rm "${ELFINDER_PUBLIC_DIR}/${dir}"
+        [ -d "${ELFINDER_PRIVATE_DIR}/${dir}" ] && ln -sf "${ELFINDER_PRIVATE_DIR}/${dir}" "${ELFINDER_PUBLIC_DIR}/${dir}"
+    done
+    echo "elfinder dependencies installed successfully."
+fi
+
 # configure nginx log
 if [ "${ACCESS_LOG:-}" != "1" ]; then
     # disable nginx logging to stdout
