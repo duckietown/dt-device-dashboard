@@ -115,6 +115,21 @@ if [ "${ACCESS_LOG:-}" != "1" ]; then
     sudo sed -i "s/error_log\ \/dev\/stdout\ info;/error_log\ \/dev\/stdout\ warn;/g" /etc/nginx/sites-available/default
 fi
 
+# DTSW-7779: route GET /api/ros-config to the duckietown_duckiedrone package's
+# runtime ROS config endpoint. Cross-package coupling, but keeps the change
+# local to the dashboard image. If more endpoints appear, generalise to
+# /api/<package>/<endpoint> upstream in dt-compose-commons.
+if ! sudo grep -q '/api/ros-config' /etc/nginx/sites-available/default; then
+    sudo sed -i '/    location \/ {/i \
+    location = /api/ros-config {\
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;\
+        fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiedrone/modules/renderers/endpoints/ros-config.php;\
+        fastcgi_param QUERY_STRING $query_string;\
+        include fastcgi_params;\
+    }\
+' /etc/nginx/sites-available/default
+fi
+
 # make sure all databases belong to ${DT_USER_NAME}
 if [ -d /user-data/databases ]; then
     chown -R ${DT_USER_NAME}:${GNAME} /user-data/databases
