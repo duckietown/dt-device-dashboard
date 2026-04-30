@@ -115,6 +115,29 @@ if [ "${ACCESS_LOG:-}" != "1" ]; then
     sudo sed -i "s/error_log\ \/dev\/stdout\ info;/error_log\ \/dev\/stdout\ warn;/g" /etc/nginx/sites-available/default
 fi
 
+# DTSW-7779: route /api/ros-config (GET/HEAD only) to the duckietown_duckiedrone
+# package's runtime ROS config endpoint. Cross-package coupling, but keeps the
+# change local to the dashboard image. If more endpoints appear, generalise to
+# /api/<package>/<endpoint> upstream in dt-compose-commons.
+if ! sudo grep -q 'location = /api/ros-config' /etc/nginx/sites-available/default; then
+    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
+    location = /api/ros-config {\
+        limit_except GET HEAD { deny all; }\
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;\
+        fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiedrone/modules/renderers/endpoints/ros-config.php;\
+        fastcgi_param QUERY_STRING $query_string;\
+        include fastcgi_params;\
+    }\
+' /etc/nginx/sites-available/default
+    # Verify the block was successfully inserted
+    if ! sudo grep -q 'location = /api/ros-config' /etc/nginx/sites-available/default; then
+        echo "ERROR: Failed to insert /api/ros-config nginx location block — nginx config pattern may have changed." >&2
+        exit 1
+    fi
+    # Validate the resulting nginx configuration
+    sudo nginx -t || exit 1
+fi
+
 # make sure all databases belong to ${DT_USER_NAME}
 if [ -d /user-data/databases ]; then
     chown -R ${DT_USER_NAME}:${GNAME} /user-data/databases
