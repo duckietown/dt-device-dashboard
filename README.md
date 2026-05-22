@@ -38,7 +38,7 @@ dt-device-dashboard/
 Pins the `\compose\` packages installed into the image. Example:
 
 ```
-duckietown_duckiedrone==v2.1.0
+duckietown_duckiedrone==v2.2.2
 ros==v1.0.5
 ...
 ```
