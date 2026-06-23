@@ -114,8 +114,8 @@ dts duckiebot virtual start testdrone
 docker rm -f dts-matrix-engine 2>/dev/null || true
 dts matrix engine run -m sandbox_drone --embedded --expose-ports
 
-# 3) Attach the virtual drone to the matrix (maps the drone to map_0/vehicle_1)
-dts matrix attach -m testdrone map_0/vehicle_1
+# 3) Attach the virtual drone to the matrix (maps the drone to map_0/vehicle_0)
+dts matrix attach -m testdrone map_0/vehicle_0
 
 # 4) Open the dashboard
 xdg-open http://testdrone.local/
