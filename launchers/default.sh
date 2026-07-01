@@ -61,6 +61,12 @@ compose configuration/set --package core \
     theme=core:modern \
     favicon=duckietown
 
+# the shared duckietown_duckiebot pages resolve the robot name and expand
+# `~` topics using these settings, including on forwarded localhost sessions
+compose configuration/set --package duckietown_duckiebot \
+    duckiebot_name=${HOSTNAME} \
+    duckiebot_hostname=${HOSTNAME}.local
+
 # configure theme
 compose theme/set \
     colors/primary/background=#2c5686 \
