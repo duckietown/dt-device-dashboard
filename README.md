@@ -292,6 +292,8 @@ VIRTUAL_HOST_CONTAINER=dts-virtual-ROBOT_NAME
 rsync -a --delete "${LOCAL_PACKAGE_PATH}/" "ROBOT_NAME:${REMOTE_PACKAGE_PATH}/"
 
 # use this instead when ROBOT_NAME is a virtual robot:
+docker exec "${VIRTUAL_HOST_CONTAINER}" rm -rf "${REMOTE_PACKAGE_PATH}"
+docker exec "${VIRTUAL_HOST_CONTAINER}" mkdir -p "${REMOTE_PACKAGE_PATH}"
 tar --exclude=.git --exclude=__pycache__ --exclude=.DS_Store -C "${LOCAL_PACKAGE_PATH}" -cf - . | docker exec -i "${VIRTUAL_HOST_CONTAINER}" tar -xf - -C "${REMOTE_PACKAGE_PATH}"
 
 # if a previous dashboard container is still running on the target host,
