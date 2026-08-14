@@ -4,8 +4,7 @@ Local UI sandbox for `dt-device-dashboard` (typically `http://localhost:8888`).
 
 ## Editable compose (DTSW-8250)
 
-To exercise chrome/theme changes from a sibling `compose` checkout without committing
-machine-absolute paths:
+`sandbox/compose` is a **relative symlink** to a sibling `compose` checkout:
 
 ```text
 .../repos/
@@ -16,14 +15,15 @@ machine-absolute paths:
 
 ```bash
 cd sandbox
+# recreate the relative link if needed
 make link-local-compose
 make run-mount-local-compose ARCH=arm64v8   # Apple Silicon / OrbStack
 ```
 
-Restore the tracked submodule pin:
+To use a pinned compose clone instead of the sibling symlink:
 
 ```bash
-make restore-compose-submodule
+make restore-compose-clone
 ```
 
-Do **not** commit a host-absolute symlink such as `/home/ubuntu/repos/compose`.
+Do **not** replace the committed relative link with a host-absolute path such as `/home/ubuntu/repos/compose`.

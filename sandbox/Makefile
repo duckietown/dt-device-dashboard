@@ -36,10 +36,12 @@ link-local-compose:
 	ln -sfn "${LOCAL_COMPOSE_REL}" "${DIR}/compose"
 	@ls -la "${DIR}/compose"
 
-# Restore the git submodule pin for sandbox/compose
-restore-compose-submodule:
+# Optional: replace the sibling symlink with a pinned compose clone (former submodule SHA)
+COMPOSE_PIN=1fc223c03b0c0ae57837314c747b11ca4ffec8bb
+restore-compose-clone:
 	rm -rf "${DIR}/compose"
-	git -C "${DIR}/.." submodule update --init sandbox/compose
+	git clone git@github.com:afdaniele/compose "${DIR}/compose"
+	git -C "${DIR}/compose" checkout "${COMPOSE_PIN}"
 	@ls -la "${DIR}/compose"
 
 
