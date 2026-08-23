@@ -129,6 +129,7 @@ docker rm -f dts-run-dt-device-dashboard || true
 # use this form for virtual robots:
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard || true
 
+# move to  path/to/dt-device-dashboard, then:
 dts devel run -H ROBOT_NAME --rm -- \
   -e HTTP_PORT=8080 \
   -v /data/ramdisk/dtps:/dtps \
