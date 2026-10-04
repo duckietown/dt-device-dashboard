@@ -26,7 +26,10 @@ init:
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
 
 _clone_compose:
-	test -d ${DIR}/compose || git clone git@github.com:duckietown/compose ${DIR}/compose
+	# A committed relative symlink with no sibling target is not a directory
+	# and still blocks `git clone` into the same path. Remove the broken link first.
+	@if [ -L "${DIR}/compose" ] && [ ! -e "${DIR}/compose" ]; then rm -f "${DIR}/compose"; fi
+	@test -d ${DIR}/compose || git clone git@github.com:duckietown/compose ${DIR}/compose
 
 # DTSW-8250: use editable sibling compose without committing host-absolute paths.
 # Creates sandbox/compose -> ../../compose (portable across machines with the same layout).
