@@ -99,6 +99,8 @@ cd sandbox && make run
 
 ### C) Deploy to a real or virtual robot
 
+The robot stack already runs a `dashboard` container on port 8080. Stop it before `dts devel run` and start it again afterwards, as shown in the second block below.
+
 ```bash
 dts devel build -f -H ROBOT_NAME
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets
@@ -151,13 +153,15 @@ docker exec "${VIRTUAL_HOST_CONTAINER}" \
   /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
 ```
 
-After stopping the development container, restart the stack dashboard:
+When done, remove the development container and restart the stack dashboard:
 
 ```bash
 # use this form for SSH-reachable targets (run on the target host):
+docker rm -f dts-run-dt-device-dashboard
 docker start dashboard
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
@@ -218,6 +222,8 @@ It dumps screenshots, a log, and a JSON result file to `docs/dashboard-test-repo
 ## Build and run reference
 
 ### Run against a robot
+
+Stop the stack-managed `dashboard` container on the robot first (`docker stop dashboard`), since it uses the same port 8080. Start it again afterwards (`docker start dashboard`). The same applies to the mounted compose package variant below.
 
 ```bash
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets
@@ -328,13 +334,15 @@ docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NA
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
 ```
 
-After stopping the development container, restart the stack dashboard:
+When done, remove the development container and restart the stack dashboard:
 
 ```bash
 # use this form for SSH-reachable targets (run on the target host):
+docker rm -f dts-run-dt-device-dashboard
 docker start dashboard
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
