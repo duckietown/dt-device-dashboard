@@ -99,6 +99,8 @@ cd sandbox && make run
 
 ### C) Deploy to a real or virtual robot
 
+The robot stack already runs a `dashboard` container on port 8080. Stop it before `dts devel run` and start it again afterwards, as shown in the second block below.
+
 ```bash
 dts devel build -f -H ROBOT_NAME
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets
@@ -121,12 +123,14 @@ docker exec "${VIRTUAL_HOST_CONTAINER}" mkdir -p "${REMOTE_PACKAGE_PATH}"
 tar --exclude=.git --exclude=__pycache__ --exclude=.DS_Store -C "${LOCAL_PACKAGE_PATH}" -cf - . | \
   docker exec -i "${VIRTUAL_HOST_CONTAINER}" tar -xf - -C "${REMOTE_PACKAGE_PATH}"
 
-# if a previous dashboard container is still running on the target host,
-# remove it before rerunning dts devel run
-# use this form for SSH-reachable targets:
+# before running dts devel run, stop the stack-managed "dashboard" container
+# and remove any leftover "dts-run-dt-device-dashboard" container
+# run these commands directly on the target robot:
+docker stop dashboard
 docker rm -f dts-run-dt-device-dashboard || true
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker stop dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard || true
 
 # move to  path/to/dt-device-dashboard, then:
@@ -147,6 +151,18 @@ docker exec dts-run-dt-device-dashboard \
 docker exec "${VIRTUAL_HOST_CONTAINER}" \
   docker exec dts-run-dt-device-dashboard \
   /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
+```
+
+When done, remove the development container and restart the stack dashboard:
+
+```bash
+# use this form for SSH-reachable targets (run on the target host):
+docker rm -f dts-run-dt-device-dashboard
+docker start dashboard
+
+# use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
 For Duckiebots, use `COMPOSE_PACKAGE_NAME=duckietown_duckiebot` and set the local/remote paths to your `compose-pkg-duckietown-duckiebot` checkout instead.
@@ -206,6 +222,8 @@ It dumps screenshots, a log, and a JSON result file to `docs/dashboard-test-repo
 ## Build and run reference
 
 ### Run against a robot
+
+Stop the stack-managed `dashboard` container on the robot first (`docker stop dashboard`), since it uses the same port 8080. Start it again afterwards (`docker start dashboard`). The same applies to the mounted compose package variant below.
 
 ```bash
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets
@@ -297,12 +315,14 @@ docker exec "${VIRTUAL_HOST_CONTAINER}" rm -rf "${REMOTE_PACKAGE_PATH}"
 docker exec "${VIRTUAL_HOST_CONTAINER}" mkdir -p "${REMOTE_PACKAGE_PATH}"
 tar --exclude=.git --exclude=__pycache__ --exclude=.DS_Store -C "${LOCAL_PACKAGE_PATH}" -cf - . | docker exec -i "${VIRTUAL_HOST_CONTAINER}" tar -xf - -C "${REMOTE_PACKAGE_PATH}"
 
-# if a previous dashboard container is still running on the target host,
-# remove it before rerunning dts devel run
-# use this form for SSH-reachable targets:
+# before running dts devel run, stop the stack-managed "dashboard" container
+# and remove any leftover "dts-run-dt-device-dashboard" container
+# run these commands directly on the target robot:
+docker stop dashboard
 docker rm -f dts-run-dt-device-dashboard || true
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker stop dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard || true
 
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets -v compose-data:/user-data/databases -v "${REMOTE_PACKAGE_PATH}:/user-data/packages/${COMPOSE_PACKAGE_NAME}:rw" -d
@@ -312,6 +332,18 @@ docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NA
 
 # use this instead when ROBOT_NAME is a virtual robot:
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
+```
+
+When done, remove the development container and restart the stack dashboard:
+
+```bash
+# use this form for SSH-reachable targets (run on the target host):
+docker rm -f dts-run-dt-device-dashboard
+docker start dashboard
+
+# use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
 ### 3. `~/` paths in default mission don't resolve on virtual drones
