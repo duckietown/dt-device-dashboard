@@ -121,12 +121,14 @@ docker exec "${VIRTUAL_HOST_CONTAINER}" mkdir -p "${REMOTE_PACKAGE_PATH}"
 tar --exclude=.git --exclude=__pycache__ --exclude=.DS_Store -C "${LOCAL_PACKAGE_PATH}" -cf - . | \
   docker exec -i "${VIRTUAL_HOST_CONTAINER}" tar -xf - -C "${REMOTE_PACKAGE_PATH}"
 
-# if a previous dashboard container is still running on the target host,
-# remove it before rerunning dts devel run
-# use this form for SSH-reachable targets:
+# before running dts devel run, stop the stack-managed "dashboard" container
+# and remove any leftover "dts-run-dt-device-dashboard" container
+# run these commands directly on the target robot:
+docker stop dashboard
 docker rm -f dts-run-dt-device-dashboard || true
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker stop dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard || true
 
 # move to  path/to/dt-device-dashboard, then:
@@ -147,6 +149,16 @@ docker exec dts-run-dt-device-dashboard \
 docker exec "${VIRTUAL_HOST_CONTAINER}" \
   docker exec dts-run-dt-device-dashboard \
   /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
+```
+
+After stopping the development container, restart the stack dashboard:
+
+```bash
+# use this form for SSH-reachable targets (run on the target host):
+docker start dashboard
+
+# use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
 For Duckiebots, use `COMPOSE_PACKAGE_NAME=duckietown_duckiebot` and set the local/remote paths to your `compose-pkg-duckietown-duckiebot` checkout instead.
@@ -297,12 +309,14 @@ docker exec "${VIRTUAL_HOST_CONTAINER}" rm -rf "${REMOTE_PACKAGE_PATH}"
 docker exec "${VIRTUAL_HOST_CONTAINER}" mkdir -p "${REMOTE_PACKAGE_PATH}"
 tar --exclude=.git --exclude=__pycache__ --exclude=.DS_Store -C "${LOCAL_PACKAGE_PATH}" -cf - . | docker exec -i "${VIRTUAL_HOST_CONTAINER}" tar -xf - -C "${REMOTE_PACKAGE_PATH}"
 
-# if a previous dashboard container is still running on the target host,
-# remove it before rerunning dts devel run
-# use this form for SSH-reachable targets:
+# before running dts devel run, stop the stack-managed "dashboard" container
+# and remove any leftover "dts-run-dt-device-dashboard" container
+# run these commands directly on the target robot:
+docker stop dashboard
 docker rm -f dts-run-dt-device-dashboard || true
 
 # use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker stop dashboard
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker rm -f dts-run-dt-device-dashboard || true
 
 dts devel run -H ROBOT_NAME --rm -- -e HTTP_PORT=8080 -v /data/ramdisk/dtps:/dtps -v /secrets:/secrets -v compose-data:/user-data/databases -v "${REMOTE_PACKAGE_PATH}:/user-data/packages/${COMPOSE_PACKAGE_NAME}:rw" -d
@@ -312,6 +326,16 @@ docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NA
 
 # use this instead when ROBOT_NAME is a virtual robot:
 docker exec "${VIRTUAL_HOST_CONTAINER}" docker exec dts-run-dt-device-dashboard /user-data/packages/${COMPOSE_PACKAGE_NAME}/post_update
+```
+
+After stopping the development container, restart the stack dashboard:
+
+```bash
+# use this form for SSH-reachable targets (run on the target host):
+docker start dashboard
+
+# use this form for virtual robots:
+docker exec "${VIRTUAL_HOST_CONTAINER}" docker start dashboard
 ```
 
 ### 3. `~/` paths in default mission don't resolve on virtual drones
