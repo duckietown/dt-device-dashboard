@@ -10,6 +10,8 @@ CONTAINER_NAME=device-dashboard-sandbox
 MKFILE_FPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 DIR=$(patsubst %/,%,$(dir $(MKFILE_FPATH)))
 EXTRA_ARGS=-v "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket"
+# Sibling checkout when repos live next to each other, e.g. .../repos/{compose,dt-device-dashboard}
+LOCAL_COMPOSE_REL=../../compose
 
 
 init:
@@ -24,7 +26,26 @@ init:
 	find ${DIR}/user-data/packages/*/.git/config -exec sed -i "s/https:\/\/github.com\/duckietown/git@github.com:duckietown/g" {} \;
 
 _clone_compose:
-	test -d ${DIR}/compose || git clone git@github.com:duckietown/compose ${DIR}/compose
+	# A committed relative symlink with no sibling target is not a directory
+	# and still blocks `git clone` into the same path. Remove the broken link first.
+	@if [ -L "${DIR}/compose" ] && [ ! -e "${DIR}/compose" ]; then rm -f "${DIR}/compose"; fi
+	@test -d ${DIR}/compose || git clone git@github.com:duckietown/compose ${DIR}/compose
+
+# DTSW-8250: use editable sibling compose without committing host-absolute paths.
+# Creates sandbox/compose -> ../../compose (portable across machines with the same layout).
+link-local-compose:
+	@test -d "${DIR}/${LOCAL_COMPOSE_REL}" || (echo "Missing ${DIR}/${LOCAL_COMPOSE_REL}; clone compose as a sibling of dt-device-dashboard first."; exit 1)
+	rm -rf "${DIR}/compose"
+	ln -sfn "${LOCAL_COMPOSE_REL}" "${DIR}/compose"
+	@ls -la "${DIR}/compose"
+
+# Optional: replace the sibling symlink with a pinned compose clone (former submodule SHA)
+COMPOSE_PIN=1fc223c03b0c0ae57837314c747b11ca4ffec8bb
+restore-compose-clone:
+	rm -rf "${DIR}/compose"
+	git clone git@github.com:afdaniele/compose "${DIR}/compose"
+	git -C "${DIR}/compose" checkout "${COMPOSE_PIN}"
+	@ls -la "${DIR}/compose"
 
 
 run:
@@ -41,6 +62,11 @@ run:
 
 
 run-mount-compose: _clone_compose
+	make run EXTRA_ARGS='${EXTRA_ARGS} -v "${DIR}/compose/:/var/www/html:rw"'
+
+# Mount sibling editable compose (after `make link-local-compose`, or any compose at LOCAL_COMPOSE_REL)
+run-mount-local-compose:
+	@test -e "${DIR}/compose" || $(MAKE) link-local-compose
 	make run EXTRA_ARGS='${EXTRA_ARGS} -v "${DIR}/compose/:/var/www/html:rw"'
 
 stop:
