@@ -147,7 +147,13 @@ fi
 # Keyboard controller is published only on the docker bridge. Proxy it on the
 # dashboard origin and require a logged-in PHP session.
 if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/default; then
-    KC_UPSTREAM_HOST=$(ip route show default 2>/dev/null | awk '{print $3; exit}')
+    # The controller is published on docker0 (see run_keyboard_controller.sh).
+    # A host-networked dashboard sees the Wi-Fi router as its default gateway,
+    # so that route must not be used as the proxy upstream.
+    KC_UPSTREAM_HOST=""
+    if ip -4 addr show docker0 >/dev/null 2>&1; then
+        KC_UPSTREAM_HOST="$(ip -4 addr show docker0 | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)"
+    fi
     KC_UPSTREAM_HOST=${KC_UPSTREAM_HOST:-172.17.0.1}
     sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
     location = /internal/keyboard-controller-auth {\
@@ -181,16 +187,16 @@ if [ -d "${WPA_DIR}" ]; then
     WPA_GID="$(stat -c %g "${WPA_DIR}/wlan0" 2>/dev/null || stat -c %g "${WPA_DIR}")"
     if [ -z "${WPA_GID}" ] || [ "${WPA_GID}" = "0" ]; then
         WPA_GID=106
-        chgrp "${WPA_GID}" "${WPA_DIR}" "${WPA_DIR}"/* 2>/dev/null || true
-        chmod 770 "${WPA_DIR}" 2>/dev/null || true
-        chmod 770 "${WPA_DIR}"/wlan0 "${WPA_DIR}"/p2p-dev-wlan0 2>/dev/null || true
+        sudo chgrp "${WPA_GID}" "${WPA_DIR}" "${WPA_DIR}"/* 2>/dev/null || true
+        sudo chmod 770 "${WPA_DIR}" 2>/dev/null || true
+        sudo chmod 770 "${WPA_DIR}"/wlan0 "${WPA_DIR}"/p2p-dev-wlan0 2>/dev/null || true
     fi
     if ! getent group "${WPA_GID}" >/dev/null; then
-        groupadd -g "${WPA_GID}" netdev || true
+        sudo groupadd -g "${WPA_GID}" netdev || true
     fi
     WPA_GROUP="$(getent group "${WPA_GID}" | cut -d: -f1)"
     if [ -n "${WPA_GROUP}" ]; then
-        usermod -aG "${WPA_GROUP}" "${DT_USER_NAME}" || true
+        sudo usermod -aG "${WPA_GROUP}" "${DT_USER_NAME}" || true
     fi
 fi
 
