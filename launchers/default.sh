@@ -144,6 +144,117 @@ if ! sudo grep -q 'location = /api/ros-config' /etc/nginx/sites-available/defaul
     sudo nginx -t || exit 1
 fi
 
+# Rosbridge listens on :9001. Proxy it on the dashboard origin so browsers that
+# block a cross-port websocket can use the page's own host. Autobahn rejects a
+# Host header that omits the port it is actually bound to.
+if ! sudo grep -q 'location /rosbridge' /etc/nginx/sites-available/default; then
+    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
+    location /rosbridge {\
+        proxy_pass http://127.0.0.1:9001/;\
+        proxy_http_version 1.1;\
+        proxy_set_header Host 127.0.0.1:9001;\
+        proxy_set_header Upgrade $http_upgrade;\
+        proxy_set_header Connection "upgrade";\
+        proxy_read_timeout 3600s;\
+        proxy_send_timeout 3600s;\
+        proxy_buffering off;\
+    }\
+' /etc/nginx/sites-available/default
+    if ! sudo grep -q 'location /rosbridge' /etc/nginx/sites-available/default; then
+        echo "ERROR: Failed to insert /rosbridge nginx location." >&2
+        exit 1
+    fi
+    sudo nginx -t || exit 1
+fi
+
+# On :8081 the page origin is the dashboard itself, so /health, /files and /code
+# never reach device-proxy. Forward the same paths the proxy serves on port 80.
+if ! sudo grep -q 'location /health/' /etc/nginx/sites-available/default; then
+    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
+    location /health/ {\
+        proxy_pass http://127.0.0.1:8085/;\
+        proxy_set_header Host $host;\
+        proxy_read_timeout 60s;\
+    }\
+    location /files/ {\
+        proxy_pass http://127.0.0.1:8082/;\
+        proxy_set_header Host $host;\
+        proxy_read_timeout 60s;\
+    }\
+    location /code/ {\
+        proxy_pass http://127.0.0.1:8086/;\
+        proxy_set_header Host $host;\
+        proxy_read_timeout 60s;\
+    }\
+    location /ros/ {\
+        proxy_pass http://127.0.0.1:8084/;\
+        proxy_set_header Host $host;\
+        proxy_read_timeout 60s;\
+    }\
+' /etc/nginx/sites-available/default
+    if ! sudo grep -q 'location /health/' /etc/nginx/sites-available/default; then
+        echo "ERROR: Failed to insert device API nginx locations." >&2
+        exit 1
+    fi
+    sudo nginx -t || exit 1
+fi
+
+# Keyboard controller is published only on the docker bridge. Proxy it on the
+# dashboard origin and require a logged-in PHP session.
+if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/default; then
+    # The controller is published on docker0 (see run_keyboard_controller.sh).
+    # A host-networked dashboard sees the Wi-Fi router as its default gateway,
+    # so that route must not be used as the proxy upstream.
+    KC_UPSTREAM_HOST=""
+    if ip -4 addr show docker0 >/dev/null 2>&1; then
+        KC_UPSTREAM_HOST="$(ip -4 addr show docker0 | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)"
+    fi
+    KC_UPSTREAM_HOST=${KC_UPSTREAM_HOST:-172.17.0.1}
+    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
+    location = /internal/keyboard-controller-auth {\
+        internal;\
+        include fastcgi_params;\
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;\
+        fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiebot/tools/keyboard_controller_auth.php;\
+    }\
+    location /keyboard-controller/ {\
+        auth_request /internal/keyboard-controller-auth;\
+        proxy_http_version 1.1;\
+        proxy_set_header Host $host;\
+        proxy_set_header Upgrade $http_upgrade;\
+        proxy_set_header Connection $http_connection;\
+        rewrite ^/keyboard-controller/(.*)$ /$1 break;\
+        proxy_pass http://'"${KC_UPSTREAM_HOST}"':8090;\
+    }\
+' /etc/nginx/sites-available/default
+    if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/default; then
+        echo "ERROR: Failed to insert /keyboard-controller/ nginx location." >&2
+        exit 1
+    fi
+    sudo nginx -t || exit 1
+fi
+
+# wpa_supplicant control sockets are root-only unless created with GROUP=netdev.
+# PHP runs as ${DT_USER_NAME}, so put that user in the socket group. If the
+# sockets are still root:root, retarget them at the usual Duckiebot netdev GID.
+WPA_DIR=/var/run/wpa_supplicant
+if [ -d "${WPA_DIR}" ]; then
+    WPA_GID="$(stat -c %g "${WPA_DIR}/wlan0" 2>/dev/null || stat -c %g "${WPA_DIR}")"
+    if [ -z "${WPA_GID}" ] || [ "${WPA_GID}" = "0" ]; then
+        WPA_GID=106
+        sudo chgrp "${WPA_GID}" "${WPA_DIR}" "${WPA_DIR}"/* 2>/dev/null || true
+        sudo chmod 770 "${WPA_DIR}" 2>/dev/null || true
+        sudo chmod 770 "${WPA_DIR}"/wlan0 "${WPA_DIR}"/p2p-dev-wlan0 2>/dev/null || true
+    fi
+    if ! getent group "${WPA_GID}" >/dev/null; then
+        sudo groupadd -g "${WPA_GID}" netdev || true
+    fi
+    WPA_GROUP="$(getent group "${WPA_GID}" | cut -d: -f1)"
+    if [ -n "${WPA_GROUP}" ]; then
+        sudo usermod -aG "${WPA_GROUP}" "${DT_USER_NAME}" || true
+    fi
+fi
+
 # make sure all databases belong to ${DT_USER_NAME}
 if [ -d /user-data/databases ]; then
     chown -R ${DT_USER_NAME}:${GNAME} /user-data/databases
