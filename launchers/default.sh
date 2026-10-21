@@ -144,23 +144,94 @@ if ! sudo grep -q 'location = /api/ros-config' /etc/nginx/sites-available/defaul
     sudo nginx -t || exit 1
 fi
 
-# Rosbridge listens on :9001. Proxy it on the dashboard origin so browsers that
-# block a cross-port websocket can use the page's own host. Autobahn rejects a
-# Host header that omits the port it is actually bound to.
-if ! sudo grep -q 'location /rosbridge' /etc/nginx/sites-available/default; then
-    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
-    location /rosbridge {\
-        proxy_pass http://127.0.0.1:9001/;\
-        proxy_http_version 1.1;\
-        proxy_set_header Host 127.0.0.1:9001;\
-        proxy_set_header Upgrade $http_upgrade;\
-        proxy_set_header Connection "upgrade";\
-        proxy_read_timeout 3600s;\
-        proxy_send_timeout 3600s;\
-        proxy_buffering off;\
-    }\
-' /etc/nginx/sites-available/default
-    if ! sudo grep -q 'location /rosbridge' /etc/nginx/sites-available/default; then
+NGINX_SITE=/etc/nginx/sites-available/default
+
+# Match both "location /path" and "location ^~ /path".
+nginx_has_location() {
+    local path="$1"
+    local escaped="${path//\//\\/}"
+    sudo grep -Eq "location[[:space:]]+(\\^~[[:space:]]+)?${escaped}([[:space:]]|\\{)" "${NGINX_SITE}"
+}
+
+insert_before_root_location() {
+    local block="$1"
+    local tmp
+    tmp="$(mktemp)"
+    printf '%s\n' "${block}" > "${tmp}"
+    sudo python3 - "${NGINX_SITE}" "${tmp}" <<'PY'
+import sys
+conf_path, block_path = sys.argv[1], sys.argv[2]
+with open(conf_path, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+block = open(block_path, "r", encoding="utf-8").read()
+if not block.endswith("\n"):
+    block += "\n"
+out = []
+inserted = False
+for line in lines:
+    stripped = line.strip()
+    if not inserted and stripped.startswith("location /") and stripped.endswith("{") and stripped[len("location /"):-1].strip() == "":
+        out.append(block)
+        inserted = True
+    out.append(line)
+if not inserted:
+    sys.exit(2)
+with open(conf_path, "w", encoding="utf-8") as fh:
+    fh.writelines(out)
+PY
+    local status=$?
+    rm -f "${tmp}"
+    if [ "${status}" -ne 0 ]; then
+        echo "ERROR: Failed to insert an nginx location before location /." >&2
+        exit 1
+    fi
+}
+
+# Rosbridge listens on :9001. Browsers that block a cross-port websocket use
+# this origin instead. Guests may subscribe; publish and service calls are
+# dropped unless the dashboard session is logged in. Autobahn still sees
+# Host: 127.0.0.1:9001 on the upstream hop.
+ROS_FILTER="${DT_PROJECT_PATH}/assets/rosbridge_guest_filter.py"
+ROS_AUTH="${DT_PROJECT_PATH}/assets/rosbridge_auth.php"
+if [ ! -f "${ROS_FILTER}" ] || [ ! -f "${ROS_AUTH}" ]; then
+    echo "ERROR: rosbridge guest filter assets are missing (${ROS_FILTER})." >&2
+    exit 1
+fi
+python3 "${ROS_FILTER}" &
+ros_filter_ready=0
+for _ in $(seq 1 50); do
+    if (echo >/dev/tcp/127.0.0.1/9002) >/dev/null 2>&1; then
+        ros_filter_ready=1
+        break
+    fi
+    sleep 0.1
+done
+if [ "${ros_filter_ready}" != "1" ]; then
+    echo "ERROR: rosbridge guest filter did not start on 127.0.0.1:9002." >&2
+    exit 1
+fi
+
+if ! nginx_has_location "/rosbridge"; then
+    insert_before_root_location "    location = /internal/rosbridge-auth {
+        internal;
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME ${ROS_AUTH};
+    }
+    location /rosbridge {
+        auth_request /internal/rosbridge-auth;
+        auth_request_set \$ros_writer \$upstream_http_x_robot_writer;
+        proxy_pass http://127.0.0.1:9002/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+        proxy_set_header X-Robot-Writer \$ros_writer;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+    }"
+    if ! nginx_has_location "/rosbridge"; then
         echo "ERROR: Failed to insert /rosbridge nginx location." >&2
         exit 1
     fi
@@ -168,36 +239,29 @@ if ! sudo grep -q 'location /rosbridge' /etc/nginx/sites-available/default; then
 fi
 
 # On :8081 the page origin is the dashboard itself, so /health, /files and /code
-# never reach device-proxy. Forward the same paths the proxy serves on port 80.
-if ! sudo grep -q 'location /health/' /etc/nginx/sites-available/default; then
-    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
-    location /health/ {\
-        proxy_pass http://127.0.0.1:8085/;\
-        proxy_set_header Host $host;\
-        proxy_read_timeout 60s;\
-    }\
-    location /files/ {\
-        proxy_pass http://127.0.0.1:8082/;\
-        proxy_set_header Host $host;\
-        proxy_read_timeout 60s;\
-    }\
-    location /code/ {\
-        proxy_pass http://127.0.0.1:8086/;\
-        proxy_set_header Host $host;\
-        proxy_read_timeout 60s;\
-    }\
-    location /ros/ {\
-        proxy_pass http://127.0.0.1:8084/;\
-        proxy_set_header Host $host;\
-        proxy_read_timeout 60s;\
-    }\
-' /etc/nginx/sites-available/default
-    if ! sudo grep -q 'location /health/' /etc/nginx/sites-available/default; then
-        echo "ERROR: Failed to insert device API nginx locations." >&2
+# never reach device-proxy. Forward each path on its own. ^~ keeps /files/*.php
+# on the file service instead of the dashboard PHP regex.
+insert_device_proxy() {
+    local path="$1"
+    local upstream="$2"
+    if nginx_has_location "${path}"; then
+        return 0
+    fi
+    insert_before_root_location "    location ^~ ${path} {
+        proxy_pass ${upstream};
+        proxy_set_header Host \$host;
+        proxy_read_timeout 60s;
+    }"
+    if ! nginx_has_location "${path}"; then
+        echo "ERROR: Failed to insert ${path} nginx location." >&2
         exit 1
     fi
-    sudo nginx -t || exit 1
-fi
+}
+insert_device_proxy "/health/" "http://127.0.0.1:8085/"
+insert_device_proxy "/files/" "http://127.0.0.1:8082/"
+insert_device_proxy "/code/" "http://127.0.0.1:8086/"
+insert_device_proxy "/ros/" "http://127.0.0.1:8084/"
+sudo nginx -t || exit 1
 
 # Keyboard controller is published only on the docker bridge. Proxy it on the
 # dashboard origin and require a logged-in PHP session.
@@ -235,23 +299,60 @@ if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/de
 fi
 
 # wpa_supplicant control sockets are root-only unless created with GROUP=netdev.
-# PHP runs as ${DT_USER_NAME}, so put that user in the socket group. If the
-# sockets are still root:root, retarget them at the usual Duckiebot netdev GID.
+# PHP runs as ${DT_USER_NAME}. Retarget only entries that are still GID 0, and
+# join the resulting group. A sibling socket that already has a non-root group
+# is left alone. The group name is per GID so an existing netdev group with a
+# different id cannot hide a failed groupadd.
 WPA_DIR=/var/run/wpa_supplicant
+retarget_root_owned() {
+    local path="$1"
+    if [ ! -e "${path}" ]; then
+        return 0
+    fi
+    if [ "$(stat -c %g "${path}")" != "0" ]; then
+        return 0
+    fi
+    if ! sudo chgrp 106 "${path}"; then
+        echo "ERROR: Failed to change ${path} from GID 0 to 106." >&2
+        return 1
+    fi
+    if ! sudo chmod 770 "${path}"; then
+        echo "ERROR: Failed to set mode 770 on ${path}." >&2
+        return 1
+    fi
+}
+grant_wpa_gid() {
+    local gid="$1"
+    local group_name=""
+    if [ -z "${gid}" ] || [ "${gid}" = "0" ]; then
+        echo "ERROR: wpa_supplicant entry is still GID 0; ${DT_USER_NAME} was not granted socket access." >&2
+        return 1
+    fi
+    if ! getent group "${gid}" >/dev/null; then
+        group_name="wpa${gid}"
+        if ! sudo groupadd -g "${gid}" "${group_name}"; then
+            echo "ERROR: Failed to create group ${group_name} for wpa_supplicant GID ${gid}. ${DT_USER_NAME} was not granted socket access." >&2
+            return 1
+        fi
+    fi
+    group_name="$(getent group "${gid}" | cut -d: -f1)"
+    if [ -z "${group_name}" ]; then
+        echo "ERROR: No group for wpa_supplicant GID ${gid}; ${DT_USER_NAME} was not granted socket access." >&2
+        return 1
+    fi
+    if ! sudo usermod -aG "${group_name}" "${DT_USER_NAME}"; then
+        echo "ERROR: Failed to add ${DT_USER_NAME} to ${group_name} (GID ${gid})." >&2
+        return 1
+    fi
+}
 if [ -d "${WPA_DIR}" ]; then
-    WPA_GID="$(stat -c %g "${WPA_DIR}/wlan0" 2>/dev/null || stat -c %g "${WPA_DIR}")"
-    if [ -z "${WPA_GID}" ] || [ "${WPA_GID}" = "0" ]; then
-        WPA_GID=106
-        sudo chgrp "${WPA_GID}" "${WPA_DIR}" "${WPA_DIR}"/* 2>/dev/null || true
-        sudo chmod 770 "${WPA_DIR}" 2>/dev/null || true
-        sudo chmod 770 "${WPA_DIR}"/wlan0 "${WPA_DIR}"/p2p-dev-wlan0 2>/dev/null || true
-    fi
-    if ! getent group "${WPA_GID}" >/dev/null; then
-        sudo groupadd -g "${WPA_GID}" netdev || true
-    fi
-    WPA_GROUP="$(getent group "${WPA_GID}" | cut -d: -f1)"
-    if [ -n "${WPA_GROUP}" ]; then
-        sudo usermod -aG "${WPA_GROUP}" "${DT_USER_NAME}" || true
+    retarget_root_owned "${WPA_DIR}"
+    for wpa_entry in "${WPA_DIR}"/*; do
+        retarget_root_owned "${wpa_entry}"
+    done
+    grant_wpa_gid "$(stat -c %g "${WPA_DIR}")"
+    if [ -e "${WPA_DIR}/wlan0" ]; then
+        grant_wpa_gid "$(stat -c %g "${WPA_DIR}/wlan0")"
     fi
 fi
 
