@@ -146,11 +146,11 @@ fi
 
 NGINX_SITE=/etc/nginx/sites-available/default
 
-# Match both "location /path" and "location ^~ /path".
+# Match "location /path", "location ^~ /path", and "location = /path".
 nginx_has_location() {
     local path="$1"
     local escaped="${path//\//\\/}"
-    sudo grep -Eq "location[[:space:]]+(\\^~[[:space:]]+)?${escaped}([[:space:]]|\\{)" "${NGINX_SITE}"
+    sudo grep -Eq "location[[:space:]]+((=|\\^~)[[:space:]]+)?${escaped}([[:space:]]|\\{)" "${NGINX_SITE}"
 }
 
 insert_before_root_location() {
@@ -187,27 +187,33 @@ PY
     fi
 }
 
-# Rosbridge listens on :9001. Browsers that block a cross-port websocket use
-# this origin instead. Guests may subscribe; publish and service calls are
-# dropped unless the dashboard session is logged in. Autobahn still sees
-# Host: 127.0.0.1:9001 on the upstream hop.
+# Clients already use :9001 (same-origin /rosbridge and ws://host:9001, including
+# pages under /dashboard/, which must not be rewritten to /dashboard/rosbridge).
+# The filter owns that port. Rosbridge itself listens on 127.0.0.1:9002, which
+# is not reachable except through the filter. Autobahn sees Host: 127.0.0.1:9002.
 ROS_FILTER="${DT_PROJECT_PATH}/assets/rosbridge_guest_filter.py"
 ROS_AUTH="${DT_PROJECT_PATH}/assets/rosbridge_auth.php"
+ROS_LISTEN_PORT=9001
+ROS_UPSTREAM_PORT=9002
 if [ ! -f "${ROS_FILTER}" ] || [ ! -f "${ROS_AUTH}" ]; then
     echo "ERROR: rosbridge guest filter assets are missing (${ROS_FILTER})." >&2
     exit 1
 fi
+export ROSBRIDGE_LISTEN_PORT="${ROS_LISTEN_PORT}"
+export ROSBRIDGE_UPSTREAM_PORT="${ROS_UPSTREAM_PORT}"
+export ROSBRIDGE_AUTH_SCRIPT="${ROS_AUTH}"
+export ROSBRIDGE_AUTH_SOCK=/run/php/php7.4-fpm.sock
 python3 "${ROS_FILTER}" &
 ros_filter_ready=0
 for _ in $(seq 1 50); do
-    if (echo >/dev/tcp/127.0.0.1/9002) >/dev/null 2>&1; then
+    if (echo >/dev/tcp/127.0.0.1/"${ROS_LISTEN_PORT}") >/dev/null 2>&1; then
         ros_filter_ready=1
         break
     fi
     sleep 0.1
 done
 if [ "${ros_filter_ready}" != "1" ]; then
-    echo "ERROR: rosbridge guest filter did not start on 127.0.0.1:9002." >&2
+    echo "ERROR: rosbridge guest filter did not start on port ${ROS_LISTEN_PORT}. Rosbridge must listen on 127.0.0.1:${ROS_UPSTREAM_PORT} so the filter can take the client port." >&2
     exit 1
 fi
 
@@ -221,12 +227,13 @@ if ! nginx_has_location "/rosbridge"; then
     location /rosbridge {
         auth_request /internal/rosbridge-auth;
         auth_request_set \$ros_writer \$upstream_http_x_robot_writer;
-        proxy_pass http://127.0.0.1:9002/;
+        proxy_pass http://127.0.0.1:${ROS_LISTEN_PORT}/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection \"upgrade\";
         proxy_set_header X-Robot-Writer \$ros_writer;
+        proxy_set_header Cookie \$http_cookie;
         proxy_read_timeout 3600s;
         proxy_send_timeout 3600s;
         proxy_buffering off;
@@ -238,13 +245,60 @@ if ! nginx_has_location "/rosbridge"; then
     sudo nginx -t || exit 1
 fi
 
-# On :8081 the page origin is the dashboard itself, so /health, /files and /code
-# never reach device-proxy. Forward each path on its own. ^~ keeps /files/*.php
-# on the file service instead of the dashboard PHP regex.
+# Shared with /keyboard-controller/ and with write methods on /files/ and /code/.
+if ! nginx_has_location "/internal/keyboard-controller-auth"; then
+    insert_before_root_location "    location = /internal/keyboard-controller-auth {
+        internal;
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiebot/tools/keyboard_controller_auth.php;
+    }"
+    if ! nginx_has_location "/internal/keyboard-controller-auth"; then
+        echo "ERROR: Failed to insert /internal/keyboard-controller-auth nginx location." >&2
+        exit 1
+    fi
+fi
+
+# On :8081 the page origin is the dashboard itself, so these paths never reach
+# device-proxy. /health/ and /ros/ stay open: guests read them for Overview and
+# Architecture, and port 80 already exposes them. /files/ and /code/ allow GET
+# and HEAD without a session; every other method uses the keyboard-controller
+# auth subrequest. ^~ keeps /files/*.php on the file service.
 insert_device_proxy() {
     local path="$1"
     local upstream="$2"
+    local gate="${3:-}"
     if nginx_has_location "${path}"; then
+        return 0
+    fi
+    # auth_request is not valid inside limit_except. GET and HEAD stay on this
+    # location with no session. Every other method is internally redirected to a
+    # named location that uses the keyboard-controller auth subrequest.
+    if [ "${gate}" = "write" ]; then
+        local auth_name="${path#/}"
+        auth_name="${auth_name%/}_authenticated"
+        local upstream_origin="${upstream%/}"
+        insert_before_root_location "    location ^~ ${path} {
+        proxy_pass ${upstream};
+        proxy_set_header Host \$host;
+        proxy_read_timeout 60s;
+        error_page 418 = @${auth_name};
+        if (\$request_method !~ ^(GET|HEAD)\$) {
+            return 418;
+        }
+    }
+    location @${auth_name} {
+        internal;
+        auth_request /internal/keyboard-controller-auth;
+        proxy_set_header Host \$host;
+        proxy_read_timeout 60s;
+        rewrite ^${path}(.*)\$ /\$1 break;
+        proxy_pass ${upstream_origin};
+    }"
+        if ! nginx_has_location "${path}"; then
+            echo "ERROR: Failed to insert ${path} nginx location." >&2
+            exit 1
+        fi
         return 0
     fi
     insert_before_root_location "    location ^~ ${path} {
@@ -258,14 +312,14 @@ insert_device_proxy() {
     fi
 }
 insert_device_proxy "/health/" "http://127.0.0.1:8085/"
-insert_device_proxy "/files/" "http://127.0.0.1:8082/"
-insert_device_proxy "/code/" "http://127.0.0.1:8086/"
+insert_device_proxy "/files/" "http://127.0.0.1:8082/" "write"
+insert_device_proxy "/code/" "http://127.0.0.1:8086/" "write"
 insert_device_proxy "/ros/" "http://127.0.0.1:8084/"
 sudo nginx -t || exit 1
 
 # Keyboard controller is published only on the docker bridge. Proxy it on the
 # dashboard origin and require a logged-in PHP session.
-if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/default; then
+if ! nginx_has_location "/keyboard-controller/"; then
     # The controller is published on docker0 (see run_keyboard_controller.sh).
     # A host-networked dashboard sees the Wi-Fi router as its default gateway,
     # so that route must not be used as the proxy upstream.
@@ -274,24 +328,16 @@ if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/de
         KC_UPSTREAM_HOST="$(ip -4 addr show docker0 | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)"
     fi
     KC_UPSTREAM_HOST=${KC_UPSTREAM_HOST:-172.17.0.1}
-    sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
-    location = /internal/keyboard-controller-auth {\
-        internal;\
-        include fastcgi_params;\
-        fastcgi_pass unix:/run/php/php7.4-fpm.sock;\
-        fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiebot/tools/keyboard_controller_auth.php;\
-    }\
-    location /keyboard-controller/ {\
-        auth_request /internal/keyboard-controller-auth;\
-        proxy_http_version 1.1;\
-        proxy_set_header Host $host;\
-        proxy_set_header Upgrade $http_upgrade;\
-        proxy_set_header Connection $http_connection;\
-        rewrite ^/keyboard-controller/(.*)$ /$1 break;\
-        proxy_pass http://'"${KC_UPSTREAM_HOST}"':8090;\
-    }\
-' /etc/nginx/sites-available/default
-    if ! sudo grep -q 'location /keyboard-controller/' /etc/nginx/sites-available/default; then
+    insert_before_root_location "    location /keyboard-controller/ {
+        auth_request /internal/keyboard-controller-auth;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        rewrite ^/keyboard-controller/(.*)\$ /\$1 break;
+        proxy_pass http://${KC_UPSTREAM_HOST}:8090;
+    }"
+    if ! nginx_has_location "/keyboard-controller/"; then
         echo "ERROR: Failed to insert /keyboard-controller/ nginx location." >&2
         exit 1
     fi
@@ -345,14 +391,37 @@ grant_wpa_gid() {
         return 1
     fi
 }
+# An absent socket directory is a robot with no Wi-Fi control socket: skip it
+# and keep booting. A path that exists and is still GID 0 after the retarget
+# stops the launcher before the entrypoint. grant_wpa_gid failures do too.
 if [ -d "${WPA_DIR}" ]; then
-    retarget_root_owned "${WPA_DIR}"
+    wpa_failed=0
+    retarget_root_owned "${WPA_DIR}" || wpa_failed=1
     for wpa_entry in "${WPA_DIR}"/*; do
-        retarget_root_owned "${wpa_entry}"
+        if [ ! -e "${wpa_entry}" ]; then
+            continue
+        fi
+        retarget_root_owned "${wpa_entry}" || wpa_failed=1
     done
-    grant_wpa_gid "$(stat -c %g "${WPA_DIR}")"
+    if [ "$(stat -c %g "${WPA_DIR}")" = "0" ]; then
+        echo "ERROR: ${WPA_DIR} is still GID 0 after the retarget attempt." >&2
+        wpa_failed=1
+    fi
+    for wpa_entry in "${WPA_DIR}"/*; do
+        if [ ! -e "${wpa_entry}" ]; then
+            continue
+        fi
+        if [ "$(stat -c %g "${wpa_entry}")" = "0" ]; then
+            echo "ERROR: ${wpa_entry} is still GID 0 after the retarget attempt." >&2
+            wpa_failed=1
+        fi
+    done
+    if [ "${wpa_failed}" != "0" ]; then
+        exit 1
+    fi
+    grant_wpa_gid "$(stat -c %g "${WPA_DIR}")" || exit 1
     if [ -e "${WPA_DIR}/wlan0" ]; then
-        grant_wpa_gid "$(stat -c %g "${WPA_DIR}/wlan0")"
+        grant_wpa_gid "$(stat -c %g "${WPA_DIR}/wlan0")" || exit 1
     fi
 fi
 
