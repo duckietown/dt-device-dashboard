@@ -42,10 +42,10 @@ sudo usermod -aG ${GNAME} ${DT_USER_NAME}
 echo "Configuring \\compose\\ ..."
 compose configuration/set --package core \
     navbar_title=${HOSTNAME} \
-    logo_white=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
-    logo_black=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
-    logo_white_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
-    logo_black_small=http://${HOSTNAME}.local/d/data/duckietown/images/logo.png \
+    logo_white=/d/data/duckietown/images/logo.png \
+    logo_black=/d/data/duckietown/images/logo.png \
+    logo_white_small=/d/data/duckietown/images/logo.png \
+    logo_black_small=/d/data/duckietown/images/logo.png \
     "navbar_subtitle=(${ROBOT_TYPE})" \
     "website_name=${ROBOT_TYPE^} Dashboard"
 
