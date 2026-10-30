@@ -126,10 +126,11 @@ fi
 # change local to the dashboard image. If more endpoints appear, generalise to
 # /api/<package>/<endpoint> upstream in dt-compose-commons.
 if ! sudo grep -q 'location = /api/ros-config' /etc/nginx/sites-available/default; then
+    PHP_FPM_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;') || exit 1
     sudo sed -i '/^[[:space:]]*location[[:space:]]*\/[[:space:]]*{$/i \
     location = /api/ros-config {\
         limit_except GET HEAD { deny all; }\
-        fastcgi_pass unix:/run/php/php7.4-fpm.sock;\
+        fastcgi_pass unix:/run/php/php'"${PHP_FPM_VERSION}"'-fpm.sock;\
         fastcgi_param SCRIPT_FILENAME /user-data/packages/duckietown_duckiedrone/modules/renderers/endpoints/ros-config.php;\
         fastcgi_param QUERY_STRING $query_string;\
         include fastcgi_params;\
