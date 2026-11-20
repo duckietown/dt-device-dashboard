@@ -344,6 +344,19 @@ if ! nginx_has_location "/keyboard-controller/"; then
     sudo nginx -t || exit 1
 fi
 
+# Start the robot-hosted keyboard controller (dt-duckietown-viewer on :8090).
+# Nginx proxies /keyboard-controller/ after auth; without this the toolbar
+# "Keyboard" / "Full viewer" links have nothing upstream.
+KC_SCRIPT="/user-data/packages/duckietown_duckiebot/scripts/run_keyboard_controller.sh"
+if [ -f "${KC_SCRIPT}" ] && command -v docker >/dev/null 2>&1; then
+    echo "Starting keyboard controller via ${KC_SCRIPT}..."
+    if ! bash "${KC_SCRIPT}"; then
+        echo "WARNING: keyboard controller failed to start; /keyboard-controller/ may be unavailable." >&2
+    fi
+elif [ ! -f "${KC_SCRIPT}" ]; then
+    echo "WARNING: ${KC_SCRIPT} missing; pin duckietown_duckiebot>=v1.5.7 for keyboard teleop auth + launcher." >&2
+fi
+
 # wpa_supplicant control sockets are root-only unless created with GROUP=netdev.
 # PHP runs as ${DT_USER_NAME}. Retarget only entries that are still GID 0, and
 # join the resulting group. A sibling socket that already has a non-root group
